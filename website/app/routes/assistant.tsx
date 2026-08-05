@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import type { Route } from "./+types/assistant";
 import { SiteHeader } from "../components/layout/site-chrome";
 import { AssistantMascot } from "../components/assistant/mascot";
-import { Paywall } from "../components/assistant/paywall";
+// Client-only: the paywall pulls in browser-only Solana wallet code
+// (@privy-io/react-auth/solana), which must never enter the SSR server bundle.
+const Paywall = lazy(() =>
+  import("../components/assistant/paywall").then((m) => ({
+    default: m.Paywall,
+  })),
+);
 import {
   EMPTY_ENTITLEMENTS,
   PaywallError,
@@ -64,10 +70,12 @@ export default function AssistantPage() {
   const [err, setErr] = useState<string | null>(null);
   const [ent, setEnt] = useState<Entitlements>(EMPTY_ENTITLEMENTS);
   const [paywall, setPaywall] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const idRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (authenticated) void fetchEntitlements().then(setEnt);
   }, [authenticated]);
@@ -306,15 +314,19 @@ export default function AssistantPage() {
         )}
       </main>
 
-      <Paywall
-        open={paywall}
-        onClose={() => setPaywall(false)}
-        entitlements={ent}
-        onCredited={(e) => {
-          setEnt(e);
-          setPaywall(false);
-        }}
-      />
+      {mounted && (
+        <Suspense fallback={null}>
+          <Paywall
+            open={paywall}
+            onClose={() => setPaywall(false)}
+            entitlements={ent}
+            onCredited={(e) => {
+              setEnt(e);
+              setPaywall(false);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

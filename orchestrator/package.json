@@ -1,0 +1,36 @@
+{
+  "name": "@nuro/orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nuro orchestrator - worker WebSocket control plane, worker-token API, and job dispatch/metering (orchestrator.nuroai.xyz)",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@privy-io/server-auth": "^1.18.4",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.36.4",
+    "fastify": "^5.2.0",
+    "postgres": "^3.4.5",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/ws": "^8.5.13",
+    "drizzle-kit": "^0.28.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

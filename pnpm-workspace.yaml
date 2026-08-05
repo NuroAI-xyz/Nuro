@@ -1,0 +1,19 @@
+packages:
+  - data
+  - website
+  - docs
+  - nuro_client
+  - orchestrator
+
+# Explicit build-script decisions (pnpm 11 gates on "undecided" dependency
+# build scripts). None of these native/optional builds are required for our
+# deploys: bufferutil/utf-8-validate are optional ws speedups (JS fallback),
+# esbuild is unused (rolldown), keccak ships prebuilt binaries, and @reown/appkit
+# needs no build step. Set to false so installs never stall on an approval prompt.
+allowBuilds:
+  '@reown/appkit': false
+  bigint-buffer: false
+  bufferutil: false
+  esbuild: false
+  keccak: false
+  utf-8-validate: false

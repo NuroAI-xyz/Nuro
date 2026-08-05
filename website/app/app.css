@@ -1,0 +1,498 @@
+@import "tailwindcss";
+
+/* Brand display face — the distressed "nuro ai" wordmark from the banner. */
+@font-face {
+  font-family: "Birth of a Hero";
+  src: url("/BIRTH_OF_A_HERO.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Host Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Birth of a Hero", "Host Grotesk", sans-serif;
+  --color-nuro-black: #000000;
+  --color-nuro-white: #ffffff;
+  --color-glass-cyan: #7ed6ff;
+  --color-glass-blue: #5fa9ff;
+  --color-glass-ice: #d4f3ff;
+  --color-glass-violet: #d8c9ff;
+  --color-glass-champagne: #fff2d5;
+  --color-muted: #8a8a8a;
+  --color-muted-soft: #5c5c5c;
+  --color-surface: #0a0a0a;
+  --color-border: rgba(255, 255, 255, 0.08);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  @apply bg-black text-white antialiased;
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(126, 214, 255, 0.18);
+  color: #fff;
+}
+
+/* Brand display face (Birth of a Hero) on every heading across the site.
+   Body copy stays in the readable sans for legibility. The grunge glyphs sit
+   tight, so give them positive tracking (overrides the negative `tracking-*`
+   utilities tuned for the old sans — this unlayered rule beats the utility). */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+}
+
+.page-shell {
+  @apply mx-auto w-full max-w-6xl px-6 sm:px-8 lg:px-12 xl:max-w-7xl xl:px-16;
+}
+
+.section-gap {
+  @apply py-14 md:py-16 lg:py-20;
+}
+
+.label-caps {
+  @apply text-[11px] font-medium uppercase tracking-[0.28em] text-[#5c5c5c];
+}
+
+.section-index {
+  @apply text-[11px] font-medium uppercase tracking-[0.2em] text-[#5c5c5c];
+}
+
+.glass-tag {
+  @apply inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em];
+  border-color: rgba(126, 214, 255, 0.22);
+  background: rgba(126, 214, 255, 0.06);
+  color: rgba(212, 243, 255, 0.92);
+}
+
+.glass-tag-neutral {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.glass-panel {
+  border: 1px solid var(--color-border);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  backdrop-filter: blur(12px);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-sm font-medium text-black transition duration-500;
+}
+
+.btn-primary:hover {
+  background: #e8e8e8;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-full border px-7 py-3.5 text-sm font-medium text-white transition duration-500;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.36);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ---- Accent gradient text ---- */
+.text-gradient {
+  background: linear-gradient(104deg, #ffffff 0%, #d4f3ff 46%, #7ed6ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---- Scroll reveal ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  filter: blur(4px);
+  transition:
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+/* Directional / effect variants (declared after base so they win the hidden state) */
+.reveal-left {
+  transform: translateX(-36px);
+}
+
+.reveal-right {
+  transform: translateX(36px);
+}
+
+.reveal-scale {
+  transform: scale(0.94);
+  filter: blur(5px);
+}
+
+.reveal-fade {
+  transform: none;
+  filter: blur(2px);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+}
+
+/* Mobile: drop the GPU-heavy blur and shorten travel so reveals feel instant + smooth */
+@media (max-width: 768px) {
+  .reveal,
+  .reveal-scale,
+  .reveal-fade {
+    filter: none;
+    transition:
+      opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal {
+    transform: translateY(20px);
+  }
+  .reveal-scale {
+    transform: scale(0.96);
+  }
+}
+
+/* ---- First-paint load-up (hero + chrome) ---- */
+@keyframes load-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes load-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.load-rise {
+  opacity: 0;
+  animation: load-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.load-fade {
+  opacity: 0;
+  animation: load-fade 0.6s ease both;
+}
+
+/* ---- Interactive cards ---- */
+.card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.55s ease,
+    background 0.55s ease;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    130% 70% at 50% 0%,
+    rgba(126, 214, 255, 0.12),
+    transparent 68%
+  );
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(126, 214, 255, 0.26);
+}
+
+.card:hover::after {
+  opacity: 1;
+}
+
+/* ---- Flowing connector dashes ---- */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -240;
+  }
+}
+
+.animate-dash {
+  stroke-dasharray: 5 11;
+  animation: dash-flow 4.5s linear infinite;
+}
+
+/* ---- Ambient float ---- */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.animate-float {
+  animation: float-y 7s ease-in-out infinite;
+}
+
+/* ---- Slow spin ---- */
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 60s linear infinite;
+}
+
+/* ---- Living liquid glass: slow viscous drift (6-20s loops) ---- */
+@keyframes liquid-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate3d(-2%, 1.5%, 0) rotate(1.1deg) scale(1.015);
+  }
+}
+
+@keyframes liquid-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate3d(2.4%, -1.4%, 0) rotate(-1.1deg) scale(1.02);
+  }
+}
+
+@keyframes liquid-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.liquid-a {
+  animation: liquid-a 16s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.liquid-b {
+  animation: liquid-b 20s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.liquid-glow {
+  animation: liquid-glow 11s ease-in-out infinite;
+}
+
+/* Soft-fade an ambient layer at every edge so it never shows a hard box. */
+.ambient-fade {
+  -webkit-mask-image: radial-gradient(
+    115% 115% at 65% 35%,
+    #000 30%,
+    transparent 72%
+  );
+  mask-image: radial-gradient(115% 115% at 65% 35%, #000 30%, transparent 72%);
+}
+
+.nav-dropdown:hover .nav-dropdown-panel,
+.nav-dropdown:focus-within .nav-dropdown-panel {
+  transform: translate(-50%, 0);
+}
+
+.nav-dropdown-panel {
+  transform: translate(-50%, 6px);
+}
+
+.nav-dropdown:hover .nav-dropdown-chevron,
+.nav-dropdown:focus-within .nav-dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-link:first-child {
+  padding-top: 0.875rem;
+}
+
+.nav-dropdown-link:last-child {
+  padding-bottom: 0.875rem;
+}
+
+@keyframes glass-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.02);
+  }
+}
+
+@keyframes glass-drift-reverse {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -1%, 0) scale(1.015);
+  }
+}
+
+@keyframes glass-breathe {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes ribbon-flow {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(-3%) translateY(1.5%);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes ring-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer-slide {
+  0% {
+    stroke-dashoffset: 1200;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-glass-drift {
+  animation: glass-drift 10s ease-in-out infinite;
+}
+
+.animate-glass-drift-reverse {
+  animation: glass-drift-reverse 12s ease-in-out infinite;
+}
+
+.animate-glass-breathe {
+  animation: glass-breathe 8s ease-in-out infinite;
+}
+
+.animate-ribbon-flow {
+  animation: ribbon-flow 11s ease-in-out infinite;
+}
+
+.animate-ring-slow {
+  animation: ring-rotate 48s linear infinite;
+}
+
+.hero-glass-drift {
+  animation: hero-glass-drift 12s ease-in-out infinite;
+}
+
+.hero-glass-drift-slow {
+  animation: hero-glass-drift 16s ease-in-out infinite reverse;
+}
+
+@keyframes hero-glass-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(-1.5%, 0.75%, 0);
+    opacity: 0.92;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-glass-drift,
+  .hero-glass-drift-slow {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glass-drift,
+  .animate-glass-drift-reverse,
+  .animate-glass-breathe,
+  .animate-ribbon-flow,
+  .animate-ring-slow,
+  .animate-dash,
+  .animate-float,
+  .animate-spin-slow,
+  .liquid-a,
+  .liquid-b,
+  .liquid-glow,
+  .hero-glass-drift,
+  .hero-glass-drift-slow {
+    animation: none;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+
+  .load-rise,
+  .load-fade {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}

@@ -1,69 +1,44 @@
-import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
-// Type-only import (erased at build) so the browser-only Solana connector
-// module never lands in the SSR server bundle.
-import type { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
-
-type SolanaConnectors = ReturnType<typeof toSolanaWalletConnectors>;
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
+import { PrivyReadyContext } from "./privy-ready";
 
 const APP_ID = import.meta.env.VITE_PRIVY_APP_ID as string | undefined;
 
 const queryClient = new QueryClient();
 
+// Loaded only on the client, so the browser-only Privy SDK never lands in the
+// SSR server bundle (which would crash Vercel's serverless function at init).
+const PrivyWrapper = lazy(() => import("./privy-wrapper"));
+
 /**
- * Wraps the app in Privy configured for Solana: email + X sign-in plus external
- * Solana wallets (Phantom / Solflare / Backpack). No embedded wallets are
- * auto-created — pure auth + BYO wallet, so payments settle from self-custody.
+ * Auth + data providers. React Query wraps everything (SSR-safe). Privy is
+ * mounted client-only after hydration; until then (and during SSR) the tree
+ * renders normally with `PrivyReadyContext = false`, so no component reaches
+ * for the Privy SDK on the server.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  if (!APP_ID) return <>{children}</>;
-  return <PrivyWrapper appId={APP_ID}>{children}</PrivyWrapper>;
-}
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-function PrivyWrapper({
-  appId,
-  children,
-}: {
-  appId: string;
-  children: ReactNode;
-}) {
-  // Solana wallet connectors are browser-only. Loading them via a dynamic
-  // import after mount keeps `@privy-io/react-auth/solana` (and its optional
-  // wallet-standard deps like @farcaster/mini-app-solana) out of the SSR
-  // server bundle — otherwise the serverless function crashes at init.
-  const [connectors, setConnectors] = useState<SolanaConnectors | undefined>(
-    undefined,
-  );
-  useEffect(() => {
-    let active = true;
-    void import("@privy-io/react-auth/solana").then((m) => {
-      if (active) setConnectors(m.toSolanaWalletConnectors());
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const enablePrivy = !!APP_ID && mounted;
 
   return (
-    <PrivyProvider
-      appId={appId}
-      config={{
-        loginMethods: ["email", "twitter", "wallet"],
-        appearance: {
-          theme: "dark",
-          accentColor: "#7ED6FF",
-          logo: "/black_background-removebg-preview.png",
-          walletChainType: "solana-only",
-        },
-        externalWallets: connectors ? { solana: { connectors } } : undefined,
-        embeddedWallets: {
-          ethereum: { createOnLogin: "off" },
-          solana: { createOnLogin: "off" },
-        },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </PrivyProvider>
+    <QueryClientProvider client={queryClient}>
+      {enablePrivy ? (
+        <Suspense
+          fallback={
+            <PrivyReadyContext.Provider value={false}>
+              {children}
+            </PrivyReadyContext.Provider>
+          }
+        >
+          <PrivyWrapper appId={APP_ID as string}>{children}</PrivyWrapper>
+        </Suspense>
+      ) : (
+        <PrivyReadyContext.Provider value={false}>
+          {children}
+        </PrivyReadyContext.Provider>
+      )}
+    </QueryClientProvider>
   );
 }

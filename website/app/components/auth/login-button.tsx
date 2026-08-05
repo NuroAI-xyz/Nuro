@@ -1,20 +1,28 @@
-import { usePrivy } from "@privy-io/react-auth";
+import { Suspense, lazy } from "react";
+import { usePrivyReady } from "./privy-ready";
+
+// Client-only: the interactive control pulls in the browser-only Privy SDK,
+// which must not enter the SSR server bundle.
+const LoginButtonInner = lazy(() => import("./login-button-inner"));
 
 /**
- * Nav auth control. Opens Privy's email / X sign-in modal, and flips to a
- * sign-out action once authenticated.
+ * Nav auth control. Renders a static button during SSR / before Privy mounts,
+ * then swaps to the interactive Privy sign-in/out control on the client.
  */
 export function LoginButton({ className = "" }: { className?: string }) {
-  const { ready, authenticated, login, logout } = usePrivy();
+  const ready = usePrivyReady();
+
+  const placeholder = (
+    <button type="button" className={className} disabled>
+      Login
+    </button>
+  );
+
+  if (!ready) return placeholder;
 
   return (
-    <button
-      type="button"
-      disabled={!ready}
-      onClick={() => (authenticated ? logout() : login())}
-      className={className}
-    >
-      {authenticated ? "Log out" : "Login"}
-    </button>
+    <Suspense fallback={placeholder}>
+      <LoginButtonInner className={className} />
+    </Suspense>
   );
 }

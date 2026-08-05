@@ -47,11 +47,11 @@ export default function Economics() {
 
         <h2 id="mechanics">How rewards accrue</h2>
         <p>
-          The staking contract uses the well-worn accumulator pattern (a
-          MasterChef-style <code>accRewardPerShare</code>) so rewards are
-          distributed pro-rata to everyone staked at the moment revenue arrives.
-          When the treasury funds rewards, the accumulator increases and every
-          staker's claimable balance grows in proportion to their share.
+          The staking program uses the well-worn accumulator pattern (a running
+          <code>reward-per-share</code> accumulator) so rewards are distributed
+          pro-rata to everyone staked at the moment revenue arrives. When the
+          treasury funds rewards, the accumulator increases and every staker's
+          claimable balance grows in proportion to their share.
         </p>
         <Callout tone="info" title="Real yield">
           Rewards are funded from actual revenue via a fund-rewards call, paid
@@ -104,7 +104,7 @@ export default function Economics() {
           </li>
         </ul>
         <Callout tone="warn" title="Audit gate">
-          Self-custody is enforced by the contract's construction, but custody
+          Self-custody is enforced by the program's construction, but custody
           of real value waits on an audit before mainnet. See{" "}
           <a href="/token">Token and economics</a> for the full revenue model.
         </Callout>

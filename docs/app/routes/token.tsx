@@ -98,22 +98,21 @@ export default function Token() {
         <Callout tone="neutral" title="Policy versus on-chain">
           These percentages are the target economic policy. Some splits are
           enforced off-chain at settlement today and will move on-chain as the
-          settlement contract lands; the treasury dashboard shows preview data
+          settlement program lands; the treasury dashboard shows preview data
           until the indexer is wired. We label what is live versus targeted
           rather than blur them.
         </Callout>
 
         <h2 id="chain">Chain and launch</h2>
         <p>
-          $NURO is an ERC-20 launched externally on the Robinhood launchpad and
-          deployed on Robinhood Chain, an EVM Layer 2. The website reads the
-          token, reward token, and staking contract addresses from environment
-          configuration, so staking and treasury light up automatically once the
-          contracts are set.
+          $NURO is an SPL token launched externally and deployed on Solana. The
+          website reads the token, reward token, and staking program addresses
+          from environment configuration, so staking and treasury light up
+          automatically once the programs are set.
         </p>
         <Callout tone="warn" title="Audit gate">
-          The staking contract is self-custody by construction, but custody of
-          real funds waits on an audit. Contracts are treated with the same
+          The staking program is self-custody by construction, but custody of
+          real funds waits on an audit. Programs are treated with the same
           "not proven until measured" discipline as the inference stack.
         </Callout>
       </div>

@@ -15,7 +15,7 @@ export function meta(_: Route.MetaArgs) {
     {
       name: "description",
       content:
-        "Where Nuro is and where it goes next: the engine gates, the contract roadmap, and the product path.",
+        "Where Nuro is and where it goes next: the engine gates, the on-chain program roadmap, and the product path.",
     },
   ];
 }
@@ -23,7 +23,7 @@ export function meta(_: Route.MetaArgs) {
 const toc: TocItem[] = [
   { id: "now", text: "What is proven now", depth: 2 },
   { id: "engine", text: "Engine roadmap", depth: 2 },
-  { id: "contracts", text: "Contract roadmap", depth: 2 },
+  { id: "contracts", text: "Program roadmap", depth: 2 },
   { id: "product", text: "Product roadmap", depth: 2 },
 ];
 
@@ -68,10 +68,10 @@ export default function Roadmap() {
           ]}
         />
 
-        <h2 id="contracts">Contract roadmap</h2>
+        <h2 id="contracts">Program roadmap</h2>
         <ul>
           <li>
-            <strong>Settlement contract</strong> - move the revenue split
+            <strong>Settlement program</strong> - move the revenue split
             on-chain so worker, treasury, and staking allocations are enforced
             by code.
           </li>

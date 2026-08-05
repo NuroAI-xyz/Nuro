@@ -16,7 +16,7 @@ interface BrowserWorkerHandle {
 }
 
 /**
- * Lifecycle for the in-tab WebGPU (WebLLM) worker. The heavy `@nuro/worker/browser`
+ * Lifecycle for the in-tab WebGPU (WebLLM) worker. The heavy `@nuroaixyz/worker/browser`
  * module (and WebLLM) is dynamically imported only on start, so it never touches SSR.
  */
 export function useBrowserWorker() {
@@ -30,7 +30,7 @@ export function useBrowserWorker() {
     setProgress(0);
     setMessage("Loading model into your browser…");
     try {
-      const { createBrowserWorker } = await import("@nuro/worker/browser");
+      const { createBrowserWorker } = await import("@nuroaixyz/worker/browser");
       const worker = await createBrowserWorker({
         orchestratorUrl: ORCHESTRATOR_WS_URL,
         token,

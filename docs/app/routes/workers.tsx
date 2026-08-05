@@ -64,7 +64,7 @@ export default function Workers() {
 ollama pull qwen2.5:27b
 
 # 2. start the Nuro worker (connects to the orchestrator)
-npx @nuro/worker \\
+npx @nuroaixyz/worker \\
   --mode native \\
   --model qwen2.5:27b \\
   --token $NURO_WORKER_TOKEN`}</CodeBlock>

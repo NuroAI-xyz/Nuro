@@ -1,12 +1,12 @@
 {
-  "name": "@nuro/worker",
+  "name": "@nuroaixyz/worker",
   "version": "0.1.0",
   "description": "Nuro AI worker client - native (Ollama) and browser (WebLLM) inference",
   "license": "MIT",
   "homepage": "https://nuroai.xyz",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nuroai/nuro.git",
+    "url": "git+https://github.com/NuroAI-xyz/Nuro.git",
     "directory": "nuro_client"
   },
   "keywords": [

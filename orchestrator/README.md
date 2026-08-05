@@ -4,7 +4,7 @@ The worker control plane for Nuro - a standalone Node service deployed at
 `orchestrator.nuroai.xyz`. It:
 
 - accepts **worker WebSocket** connections at `/v1/worker` (the protocol
-  `@nuro/worker` speaks),
+  `@nuroaixyz/worker` speaks),
 - issues and verifies **worker tokens** from a signed-in Privy session,
 - **dispatches inference jobs** to online workers and **meters earnings**,
 - serves a public, **OpenAI-compatible inference API** (`/v1/chat/completions`)
@@ -89,7 +89,7 @@ development** (localhost is always free) and enabled in production; override wit
 
 ## WebSocket `/v1/worker`
 
-Implements the `@nuro/worker` protocol:
+Implements the `@nuroaixyz/worker` protocol:
 
 - **in:** `register` → `registered`; `heartbeat` / `pong`; `job_token` /
   `job_complete` / `job_error`

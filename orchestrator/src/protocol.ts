@@ -1,4 +1,4 @@
-// Orchestrator protocol - mirrors @nuro/worker (nuro_client/src/orchestrator/messages.ts
+// Orchestrator protocol - mirrors @nuroaixyz/worker (nuro_client/src/orchestrator/messages.ts
 // and types.ts). Kept in sync by hand; the worker does NOT validate, so the server does.
 
 export type WorkerClass = "native" | "browser";

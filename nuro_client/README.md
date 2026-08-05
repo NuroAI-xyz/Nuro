@@ -1,6 +1,6 @@
-# @nuro/worker
+# @nuroaixyz/worker
 
-Worker software every Nuro contributor runs - native CLI (Ollama) and browser worker (WebLLM). Published to npm; run the native worker with `npx @nuro/worker --token YOUR_TOKEN`.
+Worker software every Nuro contributor runs - native CLI (Ollama) and browser worker (WebLLM). Published to npm; run the native worker with `npx @nuroaixyz/worker --token YOUR_TOKEN`.
 
 ## Modes
 
@@ -21,16 +21,16 @@ Get your worker token by signing in at [nuroai.xyz](https://nuroai.xyz) (email o
 
 ```bash
 pnpm install
-pnpm --filter @nuro/worker build
+pnpm --filter @nuroaixyz/worker build
 
 # Development (tsx)
-pnpm --filter @nuro/worker dev -- --token YOUR_TOKEN --model qwen2.5:27b --pull
+pnpm --filter @nuroaixyz/worker dev -- --token YOUR_TOKEN --model qwen2.5:27b --pull
 
 # Production binary
-pnpm --filter @nuro/worker start -- --token YOUR_TOKEN
+pnpm --filter @nuroaixyz/worker start -- --token YOUR_TOKEN
 
 # Published
-npx @nuro/worker --token YOUR_TOKEN
+npx @nuroaixyz/worker --token YOUR_TOKEN
 ```
 
 ### CLI options
@@ -53,7 +53,7 @@ Runs a smaller model in-tab over WebGPU via [@mlc-ai/web-llm](https://github.com
 Import from the browser subpath inside `nuroai.xyz`:
 
 ```typescript
-import { createBrowserWorker } from "@nuro/worker/browser";
+import { createBrowserWorker } from "@nuroaixyz/worker/browser";
 
 const worker = await createBrowserWorker({
   orchestratorUrl: "wss://orchestrator.nuroai.xyz/v1/worker",

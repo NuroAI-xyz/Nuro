@@ -6,11 +6,11 @@
   "scripts": {
     "dev:website": "pnpm --filter nuro-website dev",
     "dev:data": "pnpm --filter nuro-data dev",
-    "dev:client": "pnpm --filter @nuro/worker dev",
+    "dev:client": "pnpm --filter @nuroaixyz/worker dev",
     "dev:orchestrator": "pnpm --filter @nuro/orchestrator dev",
     "build:website": "pnpm --filter nuro-website build",
     "build:data": "pnpm --filter nuro-data build",
-    "build:client": "pnpm --filter @nuro/worker build",
+    "build:client": "pnpm --filter @nuroaixyz/worker build",
     "build:orchestrator": "pnpm --filter @nuro/orchestrator build"
   }
 }

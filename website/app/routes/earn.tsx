@@ -788,7 +788,7 @@ function NativeWorkerCard({
     setErr(null);
     try {
       const token = await getToken("native");
-      setCommand(`npx @nuro/worker --token ${token}`);
+      setCommand(`npx @nuroaixyz/worker --token ${token}`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed to get command");
     } finally {

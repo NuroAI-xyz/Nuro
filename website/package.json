@@ -4,14 +4,14 @@
   "description": "Nuro AI landing page and app - nuroai.xyz",
   "type": "module",
   "scripts": {
-    "build": "pnpm --config.verify-deps-before-run=false --filter @nuro/worker build && react-router build",
+    "build": "pnpm --config.verify-deps-before-run=false --filter @nuroaixyz/worker build && react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.84",
-    "@nuro/worker": "workspace:*",
+    "@nuroaixyz/worker": "workspace:*",
     "@privy-io/react-auth": "^3.35.1",
     "@privy-io/server-auth": "^1.32.5",
     "@react-router/node": "8.0.0",
@@ -31,6 +31,7 @@
     "@types/node": "^22",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vercel/react-router": "^1.3.2",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3"

@@ -10,7 +10,7 @@ const products = [
     rate: "Top rate / token",
     cta: "Get install command",
     href: "/earn",
-    command: "npx @nuro/worker --token YOUR_TOKEN",
+    command: "npx @nuroaixyz/worker --token YOUR_TOKEN",
     Glyph: TerminalGlyph,
   },
   {

@@ -24,7 +24,7 @@ export function createEngine(
       );
     case "webllm":
       throw new Error(
-        "WebLLM runs in the browser. Import from @nuro/worker/browser instead.",
+        "WebLLM runs in the browser. Import from @nuroaixyz/worker/browser instead.",
       );
     default: {
       const _exhaustive: never = model.engine;

@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { nav, siblingLinks, type DocLink } from "../../lib/nav";
 import { Toc, type TocItem } from "../util/toc";
-import { socialLinks } from "../brand/icons";
-
 const APP_URL = "https://nuroai.xyz";
 
 function ArrowIcon({ className = "" }: { className?: string }) {
@@ -95,20 +93,6 @@ function Topbar({ open, onToggle }: { open: boolean; onToggle: () => void }) {
         </div>
 
         <div className="flex items-center gap-4 md:gap-5">
-          <div className="hidden items-center gap-3.5 sm:flex">
-            {socialLinks.map(({ label, href, Icon }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={label}
-                className="text-[#8a8a8a] transition-colors duration-300 hover:text-white"
-              >
-                <Icon className="h-[17px] w-[17px]" />
-              </a>
-            ))}
-          </div>
           <a
             href={APP_URL}
             className="btn-primary px-4 py-2 text-xs md:px-5 md:py-2.5"

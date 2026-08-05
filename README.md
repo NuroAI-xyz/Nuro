@@ -6,7 +6,7 @@ Inference network powered by contributed compute - [nuroai.xyz](https://nuroai.x
 |---------|---------------|---------|
 | `nuro-website` | [nuroai.xyz](https://nuroai.xyz) | Landing page + app (`/earn`, staking, API) |
 | `nuro-data` | [data.nuroai.xyz](https://data.nuroai.xyz) | Public network data and analytics |
-| `@nuro/worker` | CLI / browser library (npm) | Contributor worker (Ollama native, WebLLM browser) |
+| `@nuroaixyz/worker` | CLI / browser library (npm) | Contributor worker (Ollama native, WebLLM browser) |
 | `@nuro/orchestrator` | [orchestrator.nuroai.xyz](https://orchestrator.nuroai.xyz) | Worker control plane: WebSocket, worker tokens, job dispatch + metering (Supabase) |
 
 ## Development
@@ -24,7 +24,7 @@ pnpm --filter nuro-data dev
 pnpm --filter @nuro/orchestrator dev
 
 # Native worker (requires a worker token from /earn + Ollama)
-pnpm --filter @nuro/worker dev -- --token YOUR_TOKEN --model qwen2.5:27b --pull
+pnpm --filter @nuroaixyz/worker dev -- --token YOUR_TOKEN --model qwen2.5:27b --pull
 ```
 
 ## Build
@@ -32,5 +32,5 @@ pnpm --filter @nuro/worker dev -- --token YOUR_TOKEN --model qwen2.5:27b --pull
 ```bash
 pnpm --filter nuro-website build
 pnpm --filter nuro-data build
-pnpm --filter @nuro/worker build
+pnpm --filter @nuroaixyz/worker build
 ```

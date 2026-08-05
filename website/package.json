@@ -14,8 +14,8 @@
     "@nuroaixyz/worker": "workspace:*",
     "@privy-io/react-auth": "^3.35.1",
     "@privy-io/server-auth": "^1.32.5",
-    "@react-router/node": "8.0.0",
-    "@react-router/serve": "8.0.0",
+    "@react-router/node": "^7.18.2",
+    "@react-router/serve": "^7.18.2",
     "@solana-program/memo": "^0.10.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.4",
@@ -23,10 +23,10 @@
     "isbot": "^5.1.36",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "8.0.0"
+    "react-router": "^7.18.2"
   },
   "devDependencies": {
-    "@react-router/dev": "8.0.0",
+    "@react-router/dev": "^7.18.2",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",
     "@types/react": "^19.2.14",

@@ -5,6 +5,14 @@ packages:
   - nuro_client
   - orchestrator
 
+# rpc-websockets@9.3.9 (a CommonJS dep of @solana/web3.js) declares uuid ^14 but
+# `require("uuid")`s it. uuid@14 is ESM-only, so under Node/CJS the require throws
+# ERR_REQUIRE_ESM. On Vercel the SSR function is bytecode-compiled and eagerly
+# loads every module at cold start, so this crashed *every* request with
+# FUNCTION_INVOCATION_FAILED. uuid@11 is the last major that still ships CommonJS
+# (and keeps the v1/v4 API rpc-websockets uses), so pin it just for that dep.
+overrides:
+  rpc-websockets>uuid: ^11.0.0
 # Explicit build-script decisions (pnpm 11 gates on "undecided" dependency
 # build scripts). None of these native/optional builds are required for our
 # deploys: bufferutil/utf-8-validate are optional ws speedups (JS fallback),

@@ -1,0 +1,18 @@
+# Docker build context = repo root (see orchestrator/Dockerfile). Keep it small:
+# deps are installed fresh inside the image, and build artifacts are regenerated.
+**/node_modules
+.git
+.pnpm-store
+**/dist
+**/build
+**/.vercel
+**/.react-router
+**/.turbo
+**/.cache
+*.log
+**/.DS_Store
+
+# Never ship secrets into the image (Railway/host injects env at runtime)
+**/.env
+**/.env.*
+!**/.env.example

@@ -11,6 +11,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY data/package.json ./data/
 COPY website/package.json ./website/
+COPY docs/package.json ./docs/
 COPY nuro_client/package.json ./nuro_client/
 COPY orchestrator/package.json ./orchestrator/
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter @nuro/orchestrator...
@@ -25,6 +26,7 @@ FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY data/package.json ./data/
 COPY website/package.json ./website/
+COPY docs/package.json ./docs/
 COPY nuro_client/package.json ./nuro_client/
 COPY orchestrator/package.json ./orchestrator/
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @nuro/orchestrator...

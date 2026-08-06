@@ -66,7 +66,7 @@ export default function Token() {
           the system originates from actual paid inference - the compute margin
           on jobs the swarm serves - plus a share of $NURO trading fees.
         </p>
-        <Figure caption="Inference revenue splits to workers, treasury, and the staking pool. The treasury both buys back and burns $NURO and pays USDC yield to stakers.">
+        <Figure caption="Inference revenue splits to workers, treasury, and the staking pool. The treasury both buys back and burns $NURO and pays USDG yield to stakers.">
           <MoneyFlow />
         </Figure>
 
@@ -92,27 +92,27 @@ export default function Token() {
         <Callout tone="info" title="Treasury policy: half and half">
           Of the value flowing into the treasury, roughly half buys back and
           burns $NURO (removing supply permanently) and half is paid to stakers
-          in USDC. The live figures are shown on the treasury dashboard. See{" "}
+          in USDG. The live figures are shown on the treasury dashboard. See{" "}
           <a href="/economics">Staking and treasury</a>.
         </Callout>
         <Callout tone="neutral" title="Policy versus on-chain">
           These percentages are the target economic policy. Some splits are
           enforced off-chain at settlement today and will move on-chain as the
-          settlement program lands; the treasury dashboard shows preview data
+          settlement contract lands; the treasury dashboard shows preview data
           until the indexer is wired. We label what is live versus targeted
           rather than blur them.
         </Callout>
 
         <h2 id="chain">Chain and launch</h2>
         <p>
-          $NURO is an SPL token launched externally and deployed on Solana. The
-          website reads the token, reward token, and staking program addresses
-          from environment configuration, so staking and treasury light up
-          automatically once the programs are set.
+          $NURO is an ERC-20 token launched externally and deployed on Robinhood
+          Chain (an EVM network). The website reads the token, reward token, and
+          staking contract addresses from environment configuration, so staking
+          and treasury light up automatically once the contracts are set.
         </p>
         <Callout tone="warn" title="Audit gate">
-          The staking program is self-custody by construction, but custody of
-          real funds waits on an audit. Programs are treated with the same
+          The staking contract is self-custody by construction, but custody of
+          real funds waits on an audit. Contracts are treated with the same
           "not proven until measured" discipline as the inference stack.
         </Callout>
       </div>

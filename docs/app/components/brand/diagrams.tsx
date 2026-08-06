@@ -259,7 +259,7 @@ export function ArchitectureDiagram({ className = "" }: { className?: string }) 
 export function MoneyFlow({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 760 300" className={`h-auto w-full ${className}`} role="img"
-      aria-label="Inference revenue splits to workers, treasury, and stakers; treasury buys back and burns while paying USDC yield">
+      aria-label="Inference revenue splits to workers, treasury, and stakers; treasury buys back and burns while paying USDG yield">
       <Box x="0" y="120" w="150" h="64" title="Inference revenue" sub="paid per job" tone="trusted" />
 
       <Box x="300" y="20" w="150" h="56" title="GPU workers" sub="~60%" tone="untrusted" />
@@ -267,7 +267,7 @@ export function MoneyFlow({ className = "" }: { className?: string }) {
       <Box x="300" y="224" w="150" h="56" title="Staking pool" sub="~10%" tone="trusted" />
 
       <Box x="600" y="94" w="160" h="52" title="Buy back + burn" sub="50% of treasury" tone="neutral" />
-      <Box x="600" y="176" w="160" h="52" title="USDC to stakers" sub="50% of treasury" tone="trusted" />
+      <Box x="600" y="176" w="160" h="52" title="USDG to stakers" sub="50% of treasury" tone="trusted" />
 
       <path d="M150 152 C 220 120, 240 60, 300 48" fill="none" stroke={CYAN} strokeWidth="1.6" className="animate-dash" />
       <path d="M150 152 L300 150" fill="none" stroke={CYAN} strokeWidth="1.6" className="animate-dash" />

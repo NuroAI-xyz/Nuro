@@ -14,7 +14,7 @@ export function meta(_: Route.MetaArgs) {
     {
       name: "description",
       content:
-        "Self-custody $NURO staking with real-yield rewards, and the treasury that buys back and burns while paying USDC to stakers.",
+        "Self-custody $NURO staking with real-yield rewards, and the treasury that buys back and burns while paying USDG to stakers.",
     },
   ];
 }
@@ -33,7 +33,7 @@ export default function Economics() {
       <DocHeader
         eyebrow="$NURO"
         title="Staking and treasury"
-        lead="Stake from your own wallet and earn a share of real network revenue. The treasury turns compute margin and fees into buybacks, burns, and USDC yield."
+        lead="Stake from your own wallet and earn a share of real network revenue. The treasury turns compute margin and fees into buybacks, burns, and USDG yield."
       />
 
       <div className="prose-docs">
@@ -47,7 +47,7 @@ export default function Economics() {
 
         <h2 id="mechanics">How rewards accrue</h2>
         <p>
-          The staking program uses the well-worn accumulator pattern (a running
+          The staking contract uses the well-worn accumulator pattern (a running
           <code>reward-per-share</code> accumulator) so rewards are distributed
           pro-rata to everyone staked at the moment revenue arrives. When the
           treasury funds rewards, the accumulator increases and every staker's
@@ -55,7 +55,7 @@ export default function Economics() {
         </p>
         <Callout tone="info" title="Real yield">
           Rewards are funded from actual revenue via a fund-rewards call, paid
-          in USDC. If nothing is staked, there is nothing to fund - rewards only
+          in USDG. If nothing is staked, there is nothing to fund - rewards only
           exist because real work was paid for.
         </Callout>
 
@@ -64,7 +64,7 @@ export default function Economics() {
           rows={[
             { term: "Stake", def: "Deposit $NURO into your vault and start earning a share of funded rewards." },
             { term: "Unstake", def: "Withdraw principal after the unstake cooldown (configurable, capped at 7 days) since your last stake." },
-            { term: "Claim", def: "Collect accrued USDC rewards to your wallet at any time." },
+            { term: "Claim", def: "Collect accrued USDG rewards to your wallet at any time." },
             { term: "Compound", def: "Restake rewards in one step - available only when the reward token equals the stake token." },
           ]}
         />
@@ -77,7 +77,7 @@ export default function Economics() {
         <StatGrid
           items={[
             { value: "50%", label: "Buys back $NURO from the market and burns it, permanently removing supply", accent: true },
-            { value: "50%", label: "Paid to stakers in USDC as real yield", accent: false },
+            { value: "50%", label: "Paid to stakers in USDG as real yield", accent: false },
             { value: "live", label: "Burn, buyback, and staked totals surface on the treasury dashboard", accent: false },
           ]}
         />
@@ -104,7 +104,7 @@ export default function Economics() {
           </li>
         </ul>
         <Callout tone="warn" title="Audit gate">
-          Self-custody is enforced by the program's construction, but custody
+          Self-custody is enforced by the contract's construction, but custody
           of real value waits on an audit before mainnet. See{" "}
           <a href="/token">Token and economics</a> for the full revenue model.
         </Callout>

@@ -29,7 +29,7 @@ export function AssistantMascot({ size = 116 }: { size?: number }) {
         }}
       >
         <img
-          src="/black_background-removebg-preview.png"
+          src="/brand-mark.svg"
           alt="Nuro"
           className="object-contain"
           style={{ width: size * 0.5, height: size * 0.5 }}

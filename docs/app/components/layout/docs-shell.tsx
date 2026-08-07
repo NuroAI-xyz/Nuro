@@ -81,7 +81,7 @@ function Topbar({ open, onToggle }: { open: boolean; onToggle: () => void }) {
           <MenuToggle open={open} onClick={onToggle} />
           <a href={APP_URL} className="flex items-center gap-3">
             <img
-              src="/black_background-removebg-preview.png"
+              src="/brand-mark.svg"
               alt="Nuro"
               className="h-8 w-8 object-contain"
             />

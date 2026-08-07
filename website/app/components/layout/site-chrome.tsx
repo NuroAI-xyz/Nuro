@@ -116,7 +116,7 @@ export function SiteHeader() {
       <div className="page-shell flex items-center justify-between py-5 md:py-6">
         <a href="#" className="flex items-center gap-3.5" onClick={close}>
           <img
-            src="/black_background-removebg-preview.png"
+            src="/brand-mark.svg"
             alt="Nuro"
             className="h-9 w-9 object-contain md:h-10 md:w-10"
           />
@@ -246,7 +246,7 @@ export function SiteFooter() {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <img
-              src="/black_background-removebg-preview.png"
+              src="/brand-mark.svg"
               alt=""
               className="h-8 w-8 object-contain"
             aria-hidden="true"

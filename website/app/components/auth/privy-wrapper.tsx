@@ -35,7 +35,7 @@ export default function PrivyWrapper({
           appearance: {
             theme: "dark",
             accentColor: "#7ED6FF",
-            logo: "/black_background-removebg-preview.png",
+            logo: "/brand-mark.png",
             walletChainType: "solana-only",
           },
           externalWallets: connectors ? { solana: { connectors } } : undefined,

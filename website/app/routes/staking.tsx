@@ -54,7 +54,9 @@ function StakeCard() {
           The staking vault ships as an on-chain contract on Robinhood Chain,
           audited before launch. Once the $NURO token and staking contract are
           live, this page connects to your wallet automatically — stake, unstake
-          anytime, and claim USDG rewards from real network revenue.
+          anytime, claim $NURO rewards, or compound them back into your stake.
+          Rewards are $NURO the treasury tops the pool up with over time, shared
+          pro-rata across everyone staked.
         </p>
       </div>
     </Reveal>
@@ -65,7 +67,7 @@ function RevenueNote() {
   const points = [
     {
       title: "Where yield comes from",
-      body: "Every paid inference request is split on-chain: the majority to the GPU workers that served it, a treasury cut for privacy research, and a slice funded to this staking pool.",
+      body: "Every paid inference request is split on-chain: the majority to the GPU workers that served it, a treasury cut for privacy research, and a slice that funds this staking pool. The treasury tops the pool up in $NURO over time, so stakers earn $NURO.",
     },
     {
       title: "Paid for real work",

@@ -31,8 +31,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Nuro Docs" />
         <meta property="og:image" content="https://docs.nuroai.xyz/og.png" />
-        <meta property="og:image:width" content="1360" />
-        <meta property="og:image:height" content="720" />
+        <meta property="og:image:width" content="1024" />
+        <meta property="og:image:height" content="461" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@NuroAIxyz" />
         <meta name="twitter:image" content="https://docs.nuroai.xyz/og.png" />

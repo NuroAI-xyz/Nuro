@@ -27,7 +27,8 @@ export default function StakingPage() {
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-[#8a8a8a] md:text-lg">
-            Your $NURO stays in your own Solana wallet. Only you can unstake or
+            Your $NURO stays in your own Robinhood Chain wallet. Only you can
+            unstake or
             claim - no server holds your funds. Stakers earn a share of real
             network revenue from inference.
           </p>
@@ -47,13 +48,13 @@ function StakeCard() {
       <div className="glass-panel mt-12 rounded-[1.75rem] p-8 md:p-10">
         <p className="section-index text-[#7ED6FF]/70">Coming online</p>
         <h2 className="mt-3 text-xl font-semibold tracking-[-0.02em] md:text-2xl">
-          Staking activates when $NURO launches on Solana
+          Staking activates when $NURO launches on Robinhood Chain
         </h2>
         <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#8a8a8a]">
-          The staking vault ships as an on-chain Solana program, audited before
-          launch. Once the $NURO mint and staking program are live, this page
-          connects to your wallet automatically — stake, unstake anytime, and
-          claim USDC rewards from real network revenue.
+          The staking vault ships as an on-chain contract on Robinhood Chain,
+          audited before launch. Once the $NURO token and staking contract are
+          live, this page connects to your wallet automatically — stake, unstake
+          anytime, and claim USDG rewards from real network revenue.
         </p>
       </div>
     </Reveal>

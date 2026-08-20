@@ -8,9 +8,15 @@
  */
 import { NURO_TOKEN, ROBINHOOD_CHAIN_ID, ROBINHOOD_RPC } from "./token";
 
-/** Deployed NuroLockStaking address (empty keeps the page in preview mode). */
+/**
+ * Deployed NuroLockStaking address. Defaults to the live Robinhood Chain
+ * contract so the page works without extra host config; override per-env with
+ * VITE_STAKING_ADDRESS. Set it to "0" (or any non-address) to force the
+ * "coming online" preview.
+ */
 export const STAKING_ADDRESS = (
-  (import.meta.env.VITE_STAKING_ADDRESS as string) || ""
+  (import.meta.env.VITE_STAKING_ADDRESS as string) ||
+  "0xB985e9B2A2C7C0bA3C260a0d1f5353757BA65454"
 ).toLowerCase();
 
 export const STAKING_CONFIGURED = /^0x[0-9a-f]{40}$/.test(STAKING_ADDRESS);

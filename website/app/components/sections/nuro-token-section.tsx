@@ -1,4 +1,6 @@
+import { Link } from "react-router";
 import { Reveal } from "../util/reveal";
+import { STAKING_APY_PCT } from "../../lib/staking";
 
 const tokenPillars = [
   {
@@ -65,7 +67,14 @@ export function NuroTokenSection() {
         </div>
 
         <Reveal variant="fade">
-          <div className="mx-auto mt-12 text-center">
+          <div className="mx-auto mt-12 flex flex-col items-center gap-5">
+            <Link
+              to="/staking"
+              className="btn-primary inline-flex items-center gap-2 px-7 py-3"
+            >
+              Stake $NURO — earn {STAKING_APY_PCT}% APY
+              <span aria-hidden="true">→</span>
+            </Link>
             <a
               href="https://docs.nuroai.xyz/token"
               className="inline-flex items-center gap-2 text-sm text-[#D4F3FF] transition-colors duration-300 hover:text-white"

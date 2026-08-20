@@ -13,4 +13,6 @@ export default [
   route("api/chat", "routes/api.chat.ts"),
   route("api/entitlements", "routes/api.entitlements.ts"),
   route("api/credits", "routes/api.credits.ts"),
+  // Same-origin passthrough to the orchestrator (kills CORS, hides the host).
+  route("api/orch/*", "routes/api.orch.$.ts"),
 ] satisfies RouteConfig;

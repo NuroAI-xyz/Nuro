@@ -63,6 +63,15 @@ export const ORCHESTRATOR_WS_URL = resolveEndpoint(
 export const PUBLIC_API_URL =
   (env.VITE_PUBLIC_API_URL as string | undefined) || "https://api.nuroai.xyz";
 
+/**
+ * Base for orchestrator HTTP calls. In the browser we go through a same-origin
+ * proxy (`/api/orch`) so requests aren't blocked by CORS and the real backend
+ * host never appears client-side. During SSR / resource routes there's no
+ * browser origin, so we call the orchestrator directly.
+ */
+const HTTP_BASE =
+  typeof window !== "undefined" ? "/api/orch" : ORCHESTRATOR_URL;
+
 export type WorkerClass = "native" | "browser";
 
 export interface UserStats {
@@ -157,7 +166,7 @@ async function req<T>(
   init: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const { token, headers, ...rest } = init;
-  const res = await fetch(`${ORCHESTRATOR_URL}${path}`, {
+  const res = await fetch(`${HTTP_BASE}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",
@@ -273,7 +282,7 @@ export async function streamChatCompletion(
 ): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(`${ORCHESTRATOR_URL}/v1/chat/completions`, {
+    res = await fetch(`${HTTP_BASE}/v1/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -353,7 +362,7 @@ export async function runTestJob(
     onError: (message: string) => void;
   },
 ): Promise<void> {
-  const res = await fetch(`${ORCHESTRATOR_URL}/v1/test-job`, {
+  const res = await fetch(`${HTTP_BASE}/v1/test-job`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

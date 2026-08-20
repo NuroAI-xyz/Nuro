@@ -11,11 +11,13 @@ import { Reveal } from "../components/util/reveal";
 import {
   NURO_SYMBOL,
   NURO_TOKEN,
+  explorerAddressUrl,
   formatUnits,
   getErc20Balance,
   getErc20Decimals,
   getTransactionReceipt,
   parseUnits,
+  shortAddress,
 } from "../lib/token";
 import {
   STAKING_APY_PCT,
@@ -116,22 +118,19 @@ function StakeCard() {
   const refresh = useCallback(async () => {
     if (!address) return;
     setLoading(true);
-    try {
-      const [dec, bal, allow, sum] = await Promise.all([
-        getErc20Decimals(NURO_TOKEN),
-        getErc20Balance(NURO_TOKEN, address),
-        getStakeAllowance(address),
-        getStakingSummary(address),
-      ]);
-      setDecimals(dec);
-      setBalance(bal);
-      setAllowance(allow);
-      setSummary(sum);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load staking data.");
-    } finally {
-      setLoading(false);
-    }
+    // Read each piece independently so one failing call (e.g. a positions
+    // decode) can never blank out an otherwise-good balance/allowance read.
+    const [dec, bal, allow, sum] = await Promise.allSettled([
+      getErc20Decimals(NURO_TOKEN),
+      getErc20Balance(NURO_TOKEN, address),
+      getStakeAllowance(address),
+      getStakingSummary(address),
+    ]);
+    if (dec.status === "fulfilled") setDecimals(dec.value);
+    if (bal.status === "fulfilled") setBalance(bal.value);
+    if (allow.status === "fulfilled") setAllowance(allow.value);
+    if (sum.status === "fulfilled") setSummary(sum.value);
+    setLoading(false);
   }, [address]);
 
   useEffect(() => {
@@ -249,7 +248,20 @@ function StakeCard() {
       <div className="mt-12 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
         {/* Left: stake panel */}
         <div className="glass-panel rounded-[1.75rem] p-6 md:p-8">
-          <p className="section-index text-[#7ED6FF]/70">Lock & earn</p>
+          <div className="flex items-center justify-between">
+            <p className="section-index text-[#7ED6FF]/70">Lock & earn</p>
+            {authenticated && address && (
+              <a
+                href={explorerAddressUrl(address)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] text-[#8a8a8a] transition hover:text-[#D4F3FF]"
+                title="Your in-app wallet — fund this address with $NURO to stake"
+              >
+                Wallet {shortAddress(address)} ↗
+              </a>
+            )}
+          </div>
 
           {/* Term selector */}
           <div className="mt-4 grid grid-cols-2 gap-3">

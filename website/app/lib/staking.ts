@@ -129,12 +129,17 @@ export async function getStakingSummary(user: string): Promise<StakingSummary> {
   const now = Math.floor(Date.now() / 1000);
 
   const positions: Position[] = [];
+  // Tolerate a per-position read failing (e.g. a transient RPC hiccup) instead
+  // of throwing away the whole summary.
   const raw = await Promise.all(
     Array.from({ length: count }, (_, i) =>
-      ethCall(STAKING_ADDRESS, SEL_GET_POSITION + encAddr(user) + encUint(BigInt(i))),
+      ethCall(STAKING_ADDRESS, SEL_GET_POSITION + encAddr(user) + encUint(BigInt(i))).catch(
+        () => "0x",
+      ),
     ),
   );
   raw.forEach((data, i) => {
+    if (!data || data === "0x") return;
     // Position struct: amount, reward, unlockAt(uint64), withdrawn(bool).
     const amount = BigInt("0x" + (wordAt(data, 0) || "0"));
     const reward = BigInt("0x" + (wordAt(data, 1) || "0"));

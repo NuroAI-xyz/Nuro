@@ -889,18 +889,14 @@ function BrowserWorkerCard({
   login: () => void;
   getToken: (c: "native" | "browser") => Promise<string>;
 }) {
-  const { status, progress, message, start, stop } = useBrowserWorker();
-  const [err, setErr] = useState<string | null>(null);
+  const { status, progress, message, networked, start, stop } =
+    useBrowserWorker();
 
+  // The token fetch is best-effort inside the hook, so starting never hard-fails
+  // on a backend/CORS error — the model still runs in the tab.
   const onStart = useCallback(async () => {
     if (!authenticated) return login();
-    setErr(null);
-    try {
-      const token = await getToken("browser");
-      await start(token);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Failed to start");
-    }
+    await start(() => getToken("browser"));
   }, [authenticated, login, getToken, start]);
 
   const loading = status === "loading";
@@ -913,7 +909,7 @@ function BrowserWorkerCard({
           Browser Worker
         </h3>
         <span className="glass-tag glass-tag-neutral">
-          {online ? "Online" : "WebGPU"}
+          {online ? (networked ? "Online" : "Local") : "WebGPU"}
         </span>
       </div>
       <p className="mt-4 text-2xl font-semibold text-[#D4F3FF]">
@@ -939,8 +935,6 @@ function BrowserWorkerCard({
           <p className="mt-2 text-xs text-[#8a8a8a]">{message}</p>
         </div>
       )}
-
-      {err && <p className="mt-3 text-xs text-[#ff9b9b]">{err}</p>}
 
       <div className="mt-auto pt-6">
         {online ? (

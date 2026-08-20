@@ -117,11 +117,16 @@ export function useBrowserWorker() {
           };
           setNetworked(true);
           setMessage("Online · connected to the network — serving jobs from this tab.");
-        } catch {
-          // Backend unreachable / not signed in — keep running locally.
+        } catch (joinErr) {
+          // Backend unreachable / not signed in / token rejected — keep running
+          // locally, but surface WHY so it's diagnosable instead of a vague
+          // "can't reach the network".
+          const reason =
+            joinErr instanceof Error ? joinErr.message : String(joinErr);
+          console.error("[browser-worker] could not join the network:", joinErr);
           setNetworked(false);
           setMessage(
-            "Running in this tab. Can't reach the network right now — it'll start earning once the connection is back.",
+            `Running in this tab (local only). Couldn't join the earning network: ${reason}`,
           );
         }
       } catch (e) {

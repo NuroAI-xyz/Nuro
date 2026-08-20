@@ -1,18 +1,16 @@
 /**
- * Grant assistant credits after a confirmed on-chain USDC payment on Solana.
+ * Grant assistant credits after a confirmed on-chain payment on Robinhood Chain.
  *
- * The client submits `{ signature, packId }` once its USDC transfer is sent.
- * This route re-derives the required amount from the pack, fetches the parsed
- * transaction, and verifies that it (a) confirmed without error and (b) moved
- * at least the required amount of USDC into the Nuro treasury's token account —
- * then credits the (signed cookie) balance exactly once (signatures are
- * recorded to block replay).
+ * The client submits `{ txHash, packId, token }` once its ERC-20 transfer
+ * (USDG or $NURO) is sent. This route fetches the transaction receipt, verifies
+ * it (a) succeeded and (b) moved at least the required amount of the given token
+ * into the Nuro treasury — by scanning the `Transfer` logs — then credits the
+ * (signed cookie) balance exactly once (tx hashes are recorded to block replay).
  *
  * Credits are therefore only ever minted by a real, verified payment; the
  * client cannot fabricate a balance.
  */
 import type { ActionFunctionArgs } from "react-router";
-import { Connection, PublicKey } from "@solana/web3.js";
 import {
   alreadyRedeemed,
   cookieHeader,
@@ -20,21 +18,21 @@ import {
   grantCredits,
   view,
 } from "../lib/entitlements.server";
-
-const PACKS: Record<string, { credits: number; usd: number }> = {
-  starter: { credits: 100, usd: 5 },
-  plus: { credits: 250, usd: 10 },
-  pro: { credits: 750, usd: 25 },
-};
-
-const RPC_URL =
-  process.env.SOLANA_RPC_URL ||
-  process.env.VITE_SOLANA_RPC_URL ||
-  "https://api.mainnet-beta.solana.com";
-const USDC_MINT =
-  process.env.VITE_USDC_MINT || "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const TREASURY = process.env.VITE_SOLANA_TREASURY || "";
-const USDC_DECIMALS = 6;
+import {
+  PAYMENTS_CONFIGURED,
+  TREASURY_ADDRESS,
+  packById,
+  paymentToken,
+  requiredBaseUnits,
+  tokenAmountWhole,
+  type PayTokenId,
+} from "../lib/payments";
+import {
+  TRANSFER_TOPIC,
+  addressFromTopic,
+  getErc20DecimalsStrict,
+  getTransactionReceipt,
+} from "../lib/token";
 
 function err(status: number, error: string) {
   return new Response(JSON.stringify({ error }), {
@@ -43,100 +41,80 @@ function err(status: number, error: string) {
   });
 }
 
-/** Total USDC (base units) credited to the treasury owner in this tx. */
-function usdcToTreasury(
-  pre: readonly TokenBalance[],
-  post: readonly TokenBalance[],
-  treasury: string,
-): bigint {
-  const key = (b: TokenBalance) => b.accountIndex;
-  const preByIdx = new Map<number, bigint>();
-  for (const b of pre) {
-    if (b.owner === treasury && b.mint === USDC_MINT)
-      preByIdx.set(key(b), BigInt(b.uiTokenAmount.amount));
-  }
-  let delta = 0n;
-  for (const b of post) {
-    if (b.owner === treasury && b.mint === USDC_MINT) {
-      const before = preByIdx.get(key(b)) ?? 0n;
-      delta += BigInt(b.uiTokenAmount.amount) - before;
-    }
-  }
-  return delta;
-}
-
-interface TokenBalance {
-  accountIndex: number;
-  mint: string;
-  owner?: string;
-  uiTokenAmount: { amount: string };
-}
-
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST") return err(405, "Method not allowed");
-  if (!TREASURY)
+  if (!PAYMENTS_CONFIGURED)
     return err(
       501,
-      "Payments are not configured on the server (set VITE_SOLANA_TREASURY).",
+      "Payments are not configured on the server (set VITE_ROBINHOOD_TREASURY).",
     );
 
-  let body: { signature?: string; packId?: string };
+  let body: { txHash?: string; packId?: string; token?: string };
   try {
     body = await request.json();
   } catch {
     return err(400, "Invalid request body.");
   }
 
-  const signature = String(body.signature || "");
-  const pack = PACKS[String(body.packId || "")];
-  if (!/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(signature))
-    return err(400, "Invalid transaction signature.");
+  const txHash = String(body.txHash || "");
+  const pack = packById(String(body.packId || ""));
+  const tokenId = String(body.token || "") as PayTokenId;
+
+  if (!/^0x[0-9a-fA-F]{64}$/.test(txHash))
+    return err(400, "Invalid transaction hash.");
   if (!pack) return err(400, "Unknown credit pack.");
+  if (tokenId !== "usdg" && tokenId !== "nuro")
+    return err(400, "Unknown payment token.");
 
   const state = getState(request);
-  if (alreadyRedeemed(state, signature))
+  if (alreadyRedeemed(state, txHash))
     return err(409, "This payment has already been credited.");
 
-  // sanity-check configured pubkeys
+  const token = paymentToken(tokenId);
+
+  let receipt;
   try {
-    new PublicKey(TREASURY);
-    new PublicKey(USDC_MINT);
+    receipt = await getTransactionReceipt(txHash);
   } catch {
-    return err(500, "Server payment config is invalid.");
+    return err(502, "The Nuro network is unreachable right now.");
   }
 
-  const connection = new Connection(RPC_URL, "confirmed");
-
-  const tx = await connection.getParsedTransaction(signature, {
-    maxSupportedTransactionVersion: 0,
-    commitment: "confirmed",
-  });
-
-  // Not visible on-chain yet — client keeps polling.
-  if (!tx || !tx.meta)
+  // Not mined / visible yet — client keeps polling.
+  if (!receipt)
     return err(
       404,
       "Transaction not found yet. Wait for it to confirm and try again.",
     );
-  if (tx.meta.err) return err(400, "Transaction failed on-chain.");
+  if (receipt.status !== "0x1") return err(400, "Transaction failed on-chain.");
 
-  const credited = usdcToTreasury(
-    (tx.meta.preTokenBalances ?? []) as TokenBalance[],
-    (tx.meta.postTokenBalances ?? []) as TokenBalance[],
-    TREASURY,
-  );
+  // Sum every Transfer of this token into the treasury within the tx.
+  let received = 0n;
+  for (const log of receipt.logs ?? []) {
+    if (log.address?.toLowerCase() !== token.address) continue;
+    if (!log.topics || log.topics[0]?.toLowerCase() !== TRANSFER_TOPIC) continue;
+    if (log.topics.length < 3) continue;
+    if (addressFromTopic(log.topics[2]) !== TREASURY_ADDRESS) continue;
+    received += BigInt(!log.data || log.data === "0x" ? "0x0" : log.data);
+  }
 
-  const required = BigInt(Math.round(pack.usd * 10 ** USDC_DECIMALS));
-  if (credited < required)
+  let decimals: number;
+  try {
+    decimals = await getErc20DecimalsStrict(token.address);
+  } catch {
+    return err(502, "Couldn't verify the payment token right now.");
+  }
+
+  const required = requiredBaseUnits(tokenId, pack, decimals);
+  if (received < required)
     return err(
       400,
-      `Payment is below the ${pack.usd} USDC pack price (received ${
-        Number(credited) / 10 ** USDC_DECIMALS
-      } USDC).`,
+      `Payment is below the ${tokenAmountWhole(tokenId, pack)} ${
+        token.symbol
+      } pack price.`,
     );
 
   // Verified — grant credits exactly once.
-  const next = grantCredits(state, pack.credits, signature);
+  const next = grantCredits(state, pack.credits, txHash);
   return new Response(
     JSON.stringify({ ok: true, granted: pack.credits, entitlements: view(next) }),
     {

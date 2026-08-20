@@ -1,28 +1,29 @@
 import { useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
 import {
-  useSignAndSendTransaction,
+  usePrivy,
   useWallets,
-} from "@privy-io/react-auth/solana";
-import { PublicKey } from "@solana/web3.js";
-import { getConnection } from "../../lib/chain";
+  useSendTransaction,
+  getEmbeddedConnectedWallet,
+} from "@privy-io/react-auth";
 import {
-  buildUsdcTransfer,
   CREDIT_PACKS,
-  NURO_CONFIGURED,
-  USDC_CONFIGURED,
+  PAYMENTS_CONFIGURED,
+  PAYMENT_TOKENS,
+  buildCreditTransfer,
+  tokenAmountWhole,
   type CreditPack,
+  type PayTokenId,
 } from "../../lib/payments";
 import type { Entitlements } from "../../lib/assistant";
 
-type Phase =
-  | "idle"
-  | "wallet"
-  | "signing"
-  | "confirming"
-  | "verifying"
-  | "done"
-  | "error";
+type Phase = "idle" | "wallet" | "signing" | "confirming" | "done" | "error";
+
+function priceLabel(token: PayTokenId, pack: CreditPack): string {
+  const amount = tokenAmountWhole(token, pack);
+  return token === "usdg"
+    ? `${amount} USDG`
+    : `${amount.toLocaleString()} $NURO`;
+}
 
 export function Paywall({
   open,
@@ -35,29 +36,27 @@ export function Paywall({
   entitlements: Entitlements;
   onCredited: (ent: Entitlements) => void;
 }) {
-  const { authenticated, login, connectWallet } = usePrivy();
+  const { authenticated, login } = usePrivy();
   const { wallets } = useWallets();
-  const { signAndSendTransaction } = useSignAndSendTransaction();
-  const wallet = wallets[0];
+  const { sendTransaction } = useSendTransaction();
+  const wallet = getEmbeddedConnectedWallet(wallets) ?? wallets[0];
 
   const [pack, setPack] = useState<CreditPack>(
     CREDIT_PACKS.find((p) => p.highlight) ?? CREDIT_PACKS[0],
   );
+  const [token, setToken] = useState<PayTokenId>("usdg");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
 
   if (!open) return null;
 
   const busy =
-    phase === "wallet" ||
-    phase === "signing" ||
-    phase === "confirming" ||
-    phase === "verifying";
+    phase === "wallet" || phase === "signing" || phase === "confirming";
 
-  const payWithUsdc = async () => {
+  const pay = async () => {
     setError(null);
-    if (!USDC_CONFIGURED) {
-      setError("USDC payments aren't configured yet.");
+    if (!PAYMENTS_CONFIGURED) {
+      setError("Payments aren't configured yet.");
       return;
     }
     if (!authenticated) {
@@ -70,56 +69,49 @@ export function Paywall({
       return;
     }
     if (!wallet) {
-      // Signed in (e.g. via email) but no Solana wallet attached yet.
-      setPhase("wallet");
-      try {
-        await connectWallet();
-      } finally {
-        setPhase("idle");
-      }
+      setError("No wallet found. Log out and back in to create one.");
       return;
     }
+
     try {
       setPhase("signing");
-      const connection = getConnection();
-      const payer = new PublicKey(wallet.address);
-      const transaction = await buildUsdcTransfer(connection, payer, pack);
-
-      const { signature } = await signAndSendTransaction({
-        transaction,
-        wallet,
-        chain: "solana:mainnet",
-      });
+      const transfer = await buildCreditTransfer(token, pack);
+      const { hash } = await sendTransaction(
+        {
+          to: transfer.to,
+          data: transfer.data,
+          chainId: transfer.chainId,
+        },
+        { address: wallet.address },
+      );
 
       // Poll the server verifier until the tx is confirmed on-chain (it returns
-      // 404 while the signature isn't visible / finalized yet).
+      // 404 while the receipt isn't visible yet).
       setPhase("confirming");
       const deadline = Date.now() + 120_000;
       for (;;) {
         const res = await fetch("/api/credits", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ signature, packId: pack.id }),
+          body: JSON.stringify({ txHash: hash, packId: pack.id, token }),
         });
-        const body = (await res.json()) as {
+        const data = (await res.json()) as {
           error?: string;
           entitlements?: Entitlements;
         };
-        if (res.ok && body.entitlements) {
-          onCredited(body.entitlements);
+        if (res.ok && data.entitlements) {
+          onCredited(data.entitlements);
           setPhase("done");
           return;
         }
         if (res.status === 404 && Date.now() < deadline) {
-          setPhase("verifying");
           await new Promise((r) => setTimeout(r, 4000));
           continue;
         }
-        throw new Error(body.error || "Could not verify the payment.");
+        throw new Error(data.error || "Could not verify the payment.");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Payment failed.";
-      // Wallet rejections shouldn't read like errors.
       setError(
         /reject|denied|cancell?ed/i.test(msg) ? "Payment cancelled." : msg,
       );
@@ -133,14 +125,10 @@ export function Paywall({
       : phase === "signing"
         ? "Confirm in wallet…"
         : phase === "confirming"
-          ? "Waiting for confirmation…"
-          : phase === "verifying"
-            ? "Verifying payment…"
-            : !authenticated
-              ? "Sign in to pay"
-              : !wallet
-                ? "Connect a wallet"
-                : `Pay ${pack.usd} USDC`;
+          ? "Confirming payment…"
+          : !authenticated
+            ? "Sign in to pay"
+            : `Pay ${priceLabel(token, pack)}`;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center">
@@ -171,7 +159,8 @@ export function Paywall({
 
         <p className="mt-2 text-[13px] leading-relaxed text-[#8a8a8a]">
           You've used {entitlements.freeUsed}/{entitlements.freeLimit} free
-          messages. Credits power the in-app assistant — buy a pack with USDC.
+          messages. Credits power the in-app assistant — pay with USDG or $NURO
+          on Robinhood Chain.
         </p>
 
         {/* Packs */}
@@ -199,26 +188,44 @@ export function Paywall({
                 </div>
                 <div className="text-[11px] text-[#8a8a8a]">messages</div>
                 <div className="mt-2 text-sm font-medium text-[#D4F3FF]">
-                  {p.usd} USDC
+                  {priceLabel(token, p)}
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* USDC pay */}
+        {/* Token toggle */}
+        <div className="mt-4 inline-flex rounded-full border border-white/[0.08] bg-black/40 p-1">
+          {(Object.keys(PAYMENT_TOKENS) as PayTokenId[]).map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setToken(id)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                token === id
+                  ? "bg-[#7ED6FF]/[0.14] text-[#D4F3FF]"
+                  : "text-[#8a8a8a] hover:text-white"
+              }`}
+            >
+              {PAYMENT_TOKENS[id].symbol}
+            </button>
+          ))}
+        </div>
+
+        {/* Pay */}
         <button
           type="button"
-          onClick={() => void payWithUsdc()}
-          disabled={busy || !USDC_CONFIGURED}
+          onClick={() => void pay()}
+          disabled={busy || !PAYMENTS_CONFIGURED}
           className="btn-primary mt-5 w-full disabled:opacity-40"
         >
           {cta}
         </button>
 
-        {!USDC_CONFIGURED && (
+        {!PAYMENTS_CONFIGURED && (
           <p className="mt-2 text-center text-[12px] text-[#c9a24a]">
-            USDC checkout activates once the treasury address is configured.
+            Checkout activates once the treasury address is configured.
           </p>
         )}
 
@@ -231,32 +238,9 @@ export function Paywall({
           <p className="mt-3 text-center text-[13px] text-[#ff9b9b]">{error}</p>
         )}
 
-        {/* $NURO */}
-        <div className="mt-5 border-t border-white/[0.06] pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Pay with $NURO</p>
-              <p className="text-[12px] text-[#8a8a8a]">
-                {NURO_CONFIGURED
-                  ? "Use $NURO for discounted credits."
-                  : "Available at token launch."}
-              </p>
-            </div>
-            <span
-              className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-                NURO_CONFIGURED
-                  ? "bg-[#7ED6FF]/[0.12] text-[#7ED6FF]"
-                  : "bg-white/[0.06] text-[#8a8a8a]"
-              }`}
-            >
-              {NURO_CONFIGURED ? "Available" : "Coming soon"}
-            </span>
-          </div>
-        </div>
-
         <p className="mt-4 text-center text-[11px] text-[#5c5c5c]">
-          USDC settles on Solana to the Nuro treasury. Credits are granted after
-          the payment is verified.
+          Payment settles on Robinhood Chain to the Nuro treasury. Credits are
+          granted after the payment is verified on-chain.
         </p>
       </div>
     </div>

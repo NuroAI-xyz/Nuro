@@ -6,3 +6,10 @@ node_modules
 # React Router
 **/.react-router/
 **/build/
+
+# Vercel (local project link / build cache — may contain project + auth data)
+.vercel/
+**/.vercel/
+
+# Local asset archives
+*.rar

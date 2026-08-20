@@ -921,8 +921,9 @@ function BrowserWorkerCard({
       </p>
       <p className="mt-1 text-[13px] text-[#6f6f6f]">Zero install - smaller models</p>
       <p className="mt-5 text-[15px] leading-relaxed text-[#8a8a8a]">
-        Runs a Qwen model right in this tab using WebGPU. Easiest to start, but
-        earns far less than native - and only while the tab stays open.
+        Runs a lightweight Qwen model right in this tab using WebGPU. Easiest to
+        start - no install - but earns far less than native, and only while the
+        tab stays open.
       </p>
 
       {(loading || online || message) && (

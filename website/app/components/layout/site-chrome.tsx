@@ -52,6 +52,7 @@ const primaryLinks: { label: string; href: string; external?: boolean }[] = [
 ];
 
 const nuroMenuItems: { label: string; href: string; external?: boolean }[] = [
+  { label: "Account", href: "/profile" },
   { label: "Staking", href: "/staking" },
   { label: "Treasury", href: "/treasury" },
 ];

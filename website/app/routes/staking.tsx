@@ -11,7 +11,6 @@ import { Reveal } from "../components/util/reveal";
 import {
   NURO_SYMBOL,
   NURO_TOKEN,
-  explorerTxUrl,
   formatUnits,
   getErc20Balance,
   getErc20Decimals,
@@ -19,15 +18,20 @@ import {
   parseUnits,
 } from "../lib/token";
 import {
+  STAKING_APY_PCT,
   STAKING_CONFIGURED,
+  TERM_LABEL,
+  TERM_SECONDS,
+  Term,
   buildApprove,
-  buildClaim,
-  buildCompound,
+  buildEmergencyWithdraw,
   buildStake,
-  buildUnstake,
+  buildWithdraw,
+  effectiveRatePct,
   getStakeAllowance,
-  getStakePosition,
-  type StakePosition,
+  getStakingSummary,
+  type Position,
+  type StakingSummary,
   type TxRequest,
 } from "../lib/staking";
 
@@ -36,8 +40,7 @@ export function meta({}: Route.MetaArgs) {
     { title: "Stake $NURO - Nuro AI" },
     {
       name: "description",
-      content:
-        "Stake $NURO from self-custody and earn a share of real network revenue. Only you can unstake or claim - no server holds your funds.",
+      content: `Lock $NURO for 6 months or 1 year and earn ${STAKING_APY_PCT}% APY, paid at maturity. Self-custody — only you can withdraw.`,
     },
   ];
 }
@@ -52,13 +55,14 @@ export default function StakingPage() {
           <h1 className="mt-5 text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
             Stake <span className="text-gradient">$NURO</span>
             <span className="ml-3 align-middle text-base font-normal text-[#6f6f6f]">
-              · self-custody
+              · {STAKING_APY_PCT}% APY
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-[#8a8a8a] md:text-lg">
-            Your $NURO stays in your own Robinhood Chain wallet. Only you can
-            unstake or claim - no server holds your funds. Stakers earn a share
-            of real network revenue from inference.
+            Lock $NURO for a fixed term and earn {STAKING_APY_PCT}% APY, paid in
+            full at maturity. Your $NURO stays self-custodied on Robinhood Chain —
+            only you can withdraw, and your reward is reserved on-chain the moment
+            you stake.
           </p>
         </Reveal>
 
@@ -70,7 +74,7 @@ export default function StakingPage() {
   );
 }
 
-// --- plain (comma-free) formatting for populating the amount input ---
+// plain (comma-free) formatting for populating the amount input.
 function plainUnits(raw: bigint, decimals: number): string {
   const base = 10n ** BigInt(decimals);
   const whole = raw / base;
@@ -78,8 +82,17 @@ function plainUnits(raw: bigint, decimals: number): string {
   return fraction ? `${whole}.${fraction}` : `${whole}`;
 }
 
-type Tab = "stake" | "unstake";
-type Phase = "idle" | "approving" | "signing" | "confirming";
+const YEAR_SECONDS = 365 * 24 * 60 * 60;
+
+// Client-side mirror of the contract's integer reward math.
+function quoteRewardLocal(amount: bigint, term: Term, apyBps: number): bigint {
+  return (
+    (amount * BigInt(apyBps) * BigInt(TERM_SECONDS[term])) /
+    (BigInt(YEAR_SECONDS) * 10_000n)
+  );
+}
+
+type Phase = "idle" | "approving" | "signing";
 
 function StakeCard() {
   const { authenticated, login } = usePrivy();
@@ -91,10 +104,10 @@ function StakeCard() {
   const [decimals, setDecimals] = useState(18);
   const [balance, setBalance] = useState<bigint>(0n);
   const [allowance, setAllowance] = useState<bigint>(0n);
-  const [pos, setPos] = useState<StakePosition | null>(null);
+  const [summary, setSummary] = useState<StakingSummary | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [tab, setTab] = useState<Tab>("stake");
+  const [term, setTerm] = useState<Term>(Term.OneYear);
   const [amount, setAmount] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -104,16 +117,16 @@ function StakeCard() {
     if (!address) return;
     setLoading(true);
     try {
-      const [dec, bal, allow, position] = await Promise.all([
+      const [dec, bal, allow, sum] = await Promise.all([
         getErc20Decimals(NURO_TOKEN),
         getErc20Balance(NURO_TOKEN, address),
         getStakeAllowance(address),
-        getStakePosition(address),
+        getStakingSummary(address),
       ]);
       setDecimals(dec);
       setBalance(bal);
       setAllowance(allow);
-      setPos(position);
+      setSummary(sum);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load staking data.");
     } finally {
@@ -126,13 +139,18 @@ function StakeCard() {
   }, [refresh]);
 
   const busy = phase !== "idle";
-  const now = Math.floor(Date.now() / 1000);
-  const locked = pos ? Number(pos.unlockTime) > now : false;
-  const staked = pos?.staked ?? 0n;
-  const pending = pos?.pending ?? 0n;
-  const canCompound = pos?.rewardIsStake ?? false;
+  const APY_BPS = Math.round(STAKING_APY_PCT * 100);
 
-  const max = tab === "stake" ? balance : staked;
+  let parsed: bigint | null = null;
+  try {
+    parsed = amount.trim() ? parseUnits(amount, decimals) : null;
+  } catch {
+    parsed = null;
+  }
+  const projectedReward =
+    parsed && parsed > 0n ? quoteRewardLocal(parsed, term, APY_BPS) : 0n;
+  const poolCapacityReached =
+    summary != null && projectedReward > summary.availableRewards;
 
   const waitReceipt = async (hash: string) => {
     const deadline = Date.now() + 120_000;
@@ -186,104 +204,83 @@ function StakeCard() {
 
   const onStake = () =>
     withGuards(async () => {
-      let value: bigint;
-      try {
-        value = parseUnits(amount, decimals);
-      } catch (e) {
-        throw new Error(e instanceof Error ? e.message : "Enter a valid amount");
-      }
-      if (value <= 0n) throw new Error("Enter an amount greater than zero");
-      if (value > balance) throw new Error("Amount exceeds your $NURO balance");
+      if (!parsed || parsed <= 0n) throw new Error("Enter an amount greater than zero");
+      if (parsed > balance) throw new Error("Amount exceeds your $NURO balance");
+      if (poolCapacityReached)
+        throw new Error("Reward pool is at capacity — try a smaller amount or shorter term");
 
-      if (allowance < value) {
+      if (allowance < parsed) {
         setPhase("approving");
         await send(buildApprove());
       }
       setPhase("signing");
-      await send(buildStake(value));
+      await send(buildStake(parsed, term));
       setAmount("");
-      setNotice("Staked successfully.");
+      setNotice(`Locked ${TERM_LABEL[term]} — reward reserved and paid at maturity.`);
     });
 
-  const onUnstake = () =>
+  const onWithdraw = (id: number) =>
     withGuards(async () => {
-      let value: bigint;
-      try {
-        value = parseUnits(amount, decimals);
-      } catch (e) {
-        throw new Error(e instanceof Error ? e.message : "Enter a valid amount");
-      }
-      if (value <= 0n) throw new Error("Enter an amount greater than zero");
-      if (value > staked) throw new Error("Amount exceeds your staked balance");
-      if (locked) throw new Error("Your stake is still within the unstake cooldown");
       setPhase("signing");
-      await send(buildUnstake(value));
-      setAmount("");
-      setNotice("Unstaked successfully.");
+      await send(buildWithdraw(id));
+      setNotice("Withdrawn — principal + reward sent to your wallet.");
     });
 
-  const onClaim = () =>
+  const onEmergency = (id: number) =>
     withGuards(async () => {
-      if (pending <= 0n) throw new Error("Nothing to claim yet");
       setPhase("signing");
-      await send(buildClaim());
-      setNotice("Rewards claimed.");
+      await send(buildEmergencyWithdraw(id));
+      setNotice("Exited early — principal returned, reward forfeited.");
     });
 
-  const onCompound = () =>
-    withGuards(async () => {
-      if (pending <= 0n) throw new Error("Nothing to compound yet");
-      setPhase("signing");
-      await send(buildCompound());
-      setNotice("Rewards compounded into your stake.");
-    });
-
-  const submit = tab === "stake" ? onStake : onUnstake;
   const cta =
     phase === "approving"
       ? "Approve in wallet…"
       : phase === "signing"
         ? "Confirm in wallet…"
-        : phase === "confirming"
-          ? "Confirming…"
-          : !authenticated
-            ? "Connect wallet to stake"
-            : tab === "stake"
-              ? "Stake $NURO"
-              : "Unstake";
+        : !authenticated
+          ? "Connect wallet to stake"
+          : `Lock for ${TERM_LABEL[term]}`;
+
+  const positions = (summary?.positions ?? []).filter((p) => !p.withdrawn);
 
   return (
     <Reveal>
-      <div className="glass-panel mt-12 grid gap-6 rounded-[1.75rem] p-6 md:grid-cols-[1.1fr_0.9fr] md:p-8">
-        {/* Left: action panel */}
-        <div>
-          <div className="inline-flex rounded-full border border-white/[0.08] bg-black/40 p-1">
-            {(["stake", "unstake"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => {
-                  setTab(t);
-                  setAmount("");
-                  setError(null);
-                  setNotice(null);
-                }}
-                className={`rounded-full px-5 py-1.5 text-xs font-medium capitalize transition ${
-                  tab === t
-                    ? "bg-[#7ED6FF]/[0.14] text-[#D4F3FF]"
-                    : "text-[#8a8a8a] hover:text-white"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+      <div className="mt-12 grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+        {/* Left: stake panel */}
+        <div className="glass-panel rounded-[1.75rem] p-6 md:p-8">
+          <p className="section-index text-[#7ED6FF]/70">Lock & earn</p>
+
+          {/* Term selector */}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {[Term.SixMonths, Term.OneYear].map((t) => {
+              const active = term === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTerm(t)}
+                  className={`rounded-2xl border px-4 py-4 text-left transition ${
+                    active
+                      ? "border-[#7ED6FF]/60 bg-[#7ED6FF]/[0.08]"
+                      : "border-white/[0.08] bg-black/40 hover:border-white/20"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-white">{TERM_LABEL[t]}</div>
+                  <div className="mt-1 text-[11px] text-[#8a8a8a]">
+                    {STAKING_APY_PCT}% APY · earns {effectiveRatePct(t).toFixed(2)}% of stake
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
+          {/* Amount */}
           <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/40 p-4">
             <div className="flex items-center justify-between text-[12px] text-[#8a8a8a]">
-              <span>{tab === "stake" ? "Wallet balance" : "Staked"}</span>
+              <span>Amount to lock</span>
               <span>
-                {formatUnits(max, decimals)} {NURO_SYMBOL}
+                Balance: {formatUnits(balance, decimals)} {NURO_SYMBOL}
               </span>
             </div>
             <div className="mt-2 flex items-center gap-2">
@@ -296,7 +293,7 @@ function StakeCard() {
               />
               <button
                 type="button"
-                onClick={() => setAmount(plainUnits(max, decimals))}
+                onClick={() => setAmount(plainUnits(balance, decimals))}
                 className="rounded-full border border-white/[0.12] px-3 py-1 text-[11px] font-medium text-[#D4F3FF] transition hover:border-[#7ED6FF]/50"
               >
                 MAX
@@ -304,69 +301,73 @@ function StakeCard() {
             </div>
           </div>
 
+          {/* Projection */}
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm">
+            <span className="text-[#8a8a8a]">You’ll receive at maturity</span>
+            <span className="font-medium text-[#D4F3FF]">
+              {parsed ? formatUnits(parsed + projectedReward, decimals) : "0"} {NURO_SYMBOL}
+              <span className="ml-2 text-[12px] text-[#7ee6a6]">
+                +{formatUnits(projectedReward, decimals)} reward
+              </span>
+            </span>
+          </div>
+
           <button
             type="button"
-            onClick={() => void submit()}
+            onClick={() => void onStake()}
             disabled={busy || loading}
             className="btn-primary mt-4 w-full disabled:opacity-40"
           >
             {cta}
           </button>
 
-          {tab === "unstake" && locked && (
+          {poolCapacityReached && (
             <p className="mt-2 text-center text-[12px] text-[#c9a24a]">
-              Unstake unlocks at {new Date(Number(pos!.unlockTime) * 1000).toLocaleString()}.
+              Reward pool capacity reached for this amount — try less or a shorter term.
             </p>
           )}
-          {notice && (
-            <p className="mt-3 text-center text-[13px] text-[#7ee6a6]">{notice}</p>
-          )}
-          {error && (
-            <p className="mt-3 text-center text-[13px] text-[#ff9b9b]">{error}</p>
-          )}
-        </div>
-
-        {/* Right: position + rewards */}
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <p className="section-index text-[#7ED6FF]/70">Your position</p>
-          <dl className="mt-4 space-y-3 text-sm">
-            <Row label="Staked">
-              {formatUnits(staked, decimals)} {NURO_SYMBOL}
-            </Row>
-            <Row label="Claimable rewards">
-              {formatUnits(pending, decimals)} {NURO_SYMBOL}
-            </Row>
-            <Row label="Pool total staked">
-              {pos ? formatUnits(pos.totalStaked, decimals) : "—"} {NURO_SYMBOL}
-            </Row>
-          </dl>
-
-          <div className="mt-5 grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => void onClaim()}
-              disabled={busy || loading || pending <= 0n}
-              className="rounded-full border border-white/[0.12] px-4 py-2 text-xs font-medium text-white transition hover:border-[#7ED6FF]/50 disabled:opacity-30"
-            >
-              Claim
-            </button>
-            <button
-              type="button"
-              onClick={() => void onCompound()}
-              disabled={busy || loading || pending <= 0n || !canCompound}
-              className="rounded-full border border-white/[0.12] px-4 py-2 text-xs font-medium text-white transition hover:border-[#7ED6FF]/50 disabled:opacity-30"
-            >
-              Compound
-            </button>
-          </div>
+          {notice && <p className="mt-3 text-center text-[13px] text-[#7ee6a6]">{notice}</p>}
+          {error && <p className="mt-3 text-center text-[13px] text-[#ff9b9b]">{error}</p>}
 
           <p className="mt-4 text-[11px] leading-relaxed text-[#5c5c5c]">
-            Rewards accrue as the treasury funds the pool in $NURO. Compound
-            restakes rewards; claim withdraws them to your wallet. Settles on
-            Robinhood Chain.
+            Your reward is fixed and reserved on-chain when you stake, then paid
+            with your principal at maturity. Need out early? Emergency exit returns
+            your principal (reward is forfeited). Settles on Robinhood Chain.
           </p>
-          {notice && notice.startsWith("Submitted") && (
-            <p className="mt-2 text-[11px] text-[#7ED6FF]">{notice}</p>
+        </div>
+
+        {/* Right: positions */}
+        <div className="glass-panel rounded-[1.75rem] p-6 md:p-8">
+          <div className="flex items-center justify-between">
+            <p className="section-index text-[#7ED6FF]/70">Your stakes</p>
+            {summary && (
+              <span className="text-[11px] text-[#5c5c5c]">
+                Pool capacity: {formatUnits(summary.availableRewards, decimals)} {NURO_SYMBOL}
+              </span>
+            )}
+          </div>
+
+          {!authenticated ? (
+            <p className="mt-6 text-[14px] text-[#8a8a8a]">
+              Connect your wallet to see your locked positions.
+            </p>
+          ) : positions.length === 0 ? (
+            <p className="mt-6 text-[14px] text-[#8a8a8a]">
+              {loading ? "Loading positions…" : "No active stakes yet. Lock some $NURO to start earning."}
+            </p>
+          ) : (
+            <ul className="mt-5 space-y-3">
+              {positions.map((p) => (
+                <PositionRow
+                  key={p.id}
+                  p={p}
+                  decimals={decimals}
+                  busy={busy}
+                  onWithdraw={() => void onWithdraw(p.id)}
+                  onEmergency={() => void onEmergency(p.id)}
+                />
+              ))}
+            </ul>
           )}
         </div>
       </div>
@@ -374,12 +375,66 @@ function StakeCard() {
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function PositionRow({
+  p,
+  decimals,
+  busy,
+  onWithdraw,
+  onEmergency,
+}: {
+  p: Position;
+  decimals: number;
+  busy: boolean;
+  onWithdraw: () => void;
+  onEmergency: () => void;
+}) {
+  const unlock = new Date(p.unlockAt * 1000);
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.05] pb-2">
-      <dt className="text-[#8a8a8a]">{label}</dt>
-      <dd className="font-medium text-[#D4F3FF]">{children}</dd>
-    </div>
+    <li className="rounded-2xl border border-white/[0.08] bg-black/40 p-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-base font-semibold text-white">
+            {formatUnits(p.amount, decimals)} {NURO_SYMBOL}
+          </div>
+          <div className="mt-1 text-[12px] text-[#7ee6a6]">
+            +{formatUnits(p.reward, decimals)} {NURO_SYMBOL} reward
+          </div>
+        </div>
+        <span
+          className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+            p.matured
+              ? "bg-[#7ee6a6]/[0.14] text-[#7ee6a6]"
+              : "bg-white/[0.06] text-[#8a8a8a]"
+          }`}
+        >
+          {p.matured ? "Matured" : "Locked"}
+        </span>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-[12px] text-[#8a8a8a]">
+          {p.matured ? "Unlocked" : `Unlocks ${unlock.toLocaleDateString()}`}
+        </span>
+        {p.matured ? (
+          <button
+            type="button"
+            onClick={onWithdraw}
+            disabled={busy}
+            className="btn-primary px-4 py-1.5 text-xs disabled:opacity-40"
+          >
+            Withdraw + reward
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onEmergency}
+            disabled={busy}
+            className="rounded-full border border-white/[0.12] px-4 py-1.5 text-xs font-medium text-[#ff9b9b] transition hover:border-[#ff9b9b]/50 disabled:opacity-40"
+          >
+            Emergency exit
+          </button>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -392,12 +447,10 @@ function PreviewCard() {
           Staking activates when $NURO launches on Robinhood Chain
         </h2>
         <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#8a8a8a]">
-          The staking vault ships as an on-chain contract on Robinhood Chain,
-          audited before launch. Once the $NURO token and staking contract are
-          live, this page connects to your wallet automatically — stake, unstake
-          anytime, claim $NURO rewards, or compound them back into your stake.
-          Rewards are $NURO the treasury tops the pool up with over time, shared
-          pro-rata across everyone staked.
+          Lock $NURO for 6 months or 1 year and earn a fixed {STAKING_APY_PCT}%
+          APY, paid at maturity. Once the staking contract is live, this page
+          connects to your wallet automatically — self-custodied, with your reward
+          reserved on-chain the moment you stake.
         </p>
       </div>
     </Reveal>
@@ -407,16 +460,16 @@ function PreviewCard() {
 function RevenueNote() {
   const points = [
     {
-      title: "Where yield comes from",
-      body: "Every paid inference request is split on-chain: the majority to the GPU workers that served it, a treasury cut for privacy research, and a slice that funds this staking pool. The treasury tops the pool up in $NURO over time, so stakers earn $NURO.",
-    },
-    {
-      title: "Paid for real work",
-      body: "Worker payouts release only against a valid correctness/privacy receipt - the same receipt discipline that proves the network ran your job right.",
+      title: "Fixed, reserved rewards",
+      body: `Lock for 6 months or 1 year at ${STAKING_APY_PCT}% APY. Your exact reward is calculated and reserved on-chain the moment you stake, so it can never be diluted by later stakers — and it's paid in full with your principal at maturity.`,
     },
     {
       title: "Self-custody, always",
-      body: "Principal lives in a vault only your wallet can withdraw from. No admin key can move, seize, or slash your stake.",
+      body: "Principal and your reserved reward live in a vault only your wallet can withdraw from. No admin key can move, seize, or slash them; the owner can only reclaim the unreserved reward surplus.",
+    },
+    {
+      title: "Exit anytime",
+      body: "Locking is about the yield, not trapping funds. Emergency exit returns your principal before maturity — you simply forfeit that position's reward back into the pool.",
     },
   ];
   return (
@@ -431,9 +484,7 @@ function RevenueNote() {
             <h3 className="text-base font-semibold tracking-[-0.02em] text-[#D4F3FF]">
               {p.title}
             </h3>
-            <p className="mt-3 text-[14px] leading-relaxed text-[#8a8a8a]">
-              {p.body}
-            </p>
+            <p className="mt-3 text-[14px] leading-relaxed text-[#8a8a8a]">{p.body}</p>
           </article>
         </Reveal>
       ))}

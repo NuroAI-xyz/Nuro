@@ -1,40 +1,63 @@
 /**
- * NuroStaking contract helpers for the /staking page.
+ * NuroLockStaking contract helpers for the /staking page.
  *
- * Same dependency-free approach as token.ts: raw JSON-RPC `eth_call` for reads
- * and hand-encoded calldata for the four user actions (stake / unstake / claim /
- * compound), plus ERC-20 allowance/approve so we can gate the stake button on a
- * sufficient allowance. Keeps viem/ethers out of the bundle — Privy's
+ * Fixed-term staking: lock $NURO for 6 months or 1 year and earn a fixed APY,
+ * paid at maturity. Same dependency-free approach as token.ts — raw JSON-RPC
+ * `eth_call` for reads and hand-encoded calldata for the actions. Privy's
  * `sendTransaction` broadcasts the calldata we build here.
  */
 import { NURO_TOKEN, ROBINHOOD_CHAIN_ID, ROBINHOOD_RPC } from "./token";
 
-/** Deployed NuroStaking address (empty string keeps the page in preview mode). */
+/** Deployed NuroLockStaking address (empty keeps the page in preview mode). */
 export const STAKING_ADDRESS = (
   (import.meta.env.VITE_STAKING_ADDRESS as string) || ""
 ).toLowerCase();
 
 export const STAKING_CONFIGURED = /^0x[0-9a-f]{40}$/.test(STAKING_ADDRESS);
 
-// Staking function selectors (cast sig).
-const SEL_STAKE = "0xa694fc3a"; // stake(uint256)
-const SEL_UNSTAKE = "0x2e17de78"; // unstake(uint256)
-const SEL_CLAIM = "0x4e71d92d"; // claim()
-const SEL_COMPOUND = "0xf69e2046"; // compound()
-const SEL_TOTAL_STAKED = "0x817b1cd2"; // totalStaked()
-const SEL_PENDING = "0x31d7a262"; // pendingRewards(address)
-const SEL_COOLDOWN = "0x7eefd5ae"; // unstakeCooldown()
-const SEL_UNLOCK_TIME = "0x76b467b7"; // unlockTime(address)
-const SEL_USERS = "0xa87430ba"; // users(address)
-const SEL_REWARD_IS_STAKE = "0x35b1adb0"; // rewardIsStake()
-const SEL_TOKENS_SET = "0xd1d7d350"; // tokensSet()
+/** APY in basis points shown on the page (must match the contract). */
+export const STAKING_APY_BPS = Number(
+  (import.meta.env.VITE_STAKING_APY_BPS as string) || "1000",
+);
 
-// ERC-20 selectors used for the approval gate.
+/** APY as a percentage number (e.g. 10). */
+export const STAKING_APY_PCT = STAKING_APY_BPS / 100;
+
+export enum Term {
+  SixMonths = 0,
+  OneYear = 1,
+}
+
+export const TERM_SECONDS: Record<Term, number> = {
+  [Term.SixMonths]: 182 * 24 * 60 * 60,
+  [Term.OneYear]: 365 * 24 * 60 * 60,
+};
+
+export const TERM_LABEL: Record<Term, string> = {
+  [Term.SixMonths]: "6 months",
+  [Term.OneYear]: "1 year",
+};
+
+/** Effective payout rate for a term at the given APY (e.g. 6mo@10% ≈ 4.98%). */
+export function effectiveRatePct(term: Term): number {
+  return (STAKING_APY_PCT * TERM_SECONDS[term]) / (365 * 24 * 60 * 60);
+}
+
+// Function selectors (cast sig).
+const SEL_STAKE = "0x10087fb1"; // stake(uint256,uint8)
+const SEL_WITHDRAW = "0x2e1a7d4d"; // withdraw(uint256)
+const SEL_EMERGENCY = "0x5312ea8e"; // emergencyWithdraw(uint256)
+const SEL_GET_POSITION = "0x3adbb5af"; // getPosition(address,uint256)
+const SEL_POSITION_COUNT = "0x42fd3880"; // positionCount(address)
+const SEL_QUOTE = "0xfdd75d77"; // quoteReward(uint256,uint8)
+const SEL_AVAILABLE = "0x879d9090"; // availableRewards()
+const SEL_TOTAL_STAKED = "0x817b1cd2"; // totalStaked()
+
+// ERC-20 selectors for the approval gate.
 const SEL_ALLOWANCE = "0xdd62ed3e"; // allowance(address,address)
 const SEL_APPROVE = "0x095ea7b3"; // approve(address,uint256)
 
-const MAX_UINT256 =
-  (1n << 256n) - 1n; // approve amount for a one-time unlimited allowance
+const MAX_UINT256 = (1n << 256n) - 1n;
 
 function pad32(hexNo0x: string): string {
   return hexNo0x.toLowerCase().padStart(64, "0");
@@ -69,49 +92,70 @@ function toBig(result: string): bigint {
   return BigInt(!result || result === "0x" ? "0x0" : result);
 }
 
-/** A staker's on-chain position + pool context, all in base units. */
-export interface StakePosition {
-  staked: bigint; // user principal
-  pending: bigint; // claimable rewards right now
-  totalStaked: bigint; // pool total
-  unlockTime: bigint; // unix seconds; unstake allowed at/after this
-  cooldown: bigint; // configured cooldown in seconds
-  rewardIsStake: boolean; // whether compound() is available
-  tokensSet: boolean; // whether staking is live on-chain
+function wordAt(data: string, index: number): string {
+  const start = 2 + index * 64;
+  return data.slice(start, start + 64);
 }
 
-export async function getTotalStaked(): Promise<bigint> {
-  return toBig(await ethCall(STAKING_ADDRESS, SEL_TOTAL_STAKED));
+export interface Position {
+  id: number;
+  amount: bigint;
+  reward: bigint;
+  unlockAt: number; // unix seconds
+  withdrawn: boolean;
+  matured: boolean; // now >= unlockAt
 }
 
-/** Read everything the UI needs for `user` in a handful of parallel calls. */
-export async function getStakePosition(user: string): Promise<StakePosition> {
-  const [usersRes, pendingRes, totalRes, unlockRes, cooldownRes, rewardRes, setRes] =
-    await Promise.all([
-      ethCall(STAKING_ADDRESS, SEL_USERS + encAddr(user)),
-      ethCall(STAKING_ADDRESS, SEL_PENDING + encAddr(user)),
-      ethCall(STAKING_ADDRESS, SEL_TOTAL_STAKED),
-      ethCall(STAKING_ADDRESS, SEL_UNLOCK_TIME + encAddr(user)),
-      ethCall(STAKING_ADDRESS, SEL_COOLDOWN),
-      ethCall(STAKING_ADDRESS, SEL_REWARD_IS_STAKE),
-      ethCall(STAKING_ADDRESS, SEL_TOKENS_SET),
-    ]);
+export interface StakingSummary {
+  totalStaked: bigint;
+  availableRewards: bigint;
+  positions: Position[];
+}
 
-  // users() returns (amount, rewardDebt, pending, lastStakeTime) — first word
-  // is the staked principal.
-  const amountWord = usersRes && usersRes !== "0x" ? usersRes.slice(2, 66) : "0";
+export async function getStakingSummary(user: string): Promise<StakingSummary> {
+  const [totalRes, availRes, countRes] = await Promise.all([
+    ethCall(STAKING_ADDRESS, SEL_TOTAL_STAKED),
+    ethCall(STAKING_ADDRESS, SEL_AVAILABLE),
+    ethCall(STAKING_ADDRESS, SEL_POSITION_COUNT + encAddr(user)),
+  ]);
+
+  const count = Number(toBig(countRes));
+  const now = Math.floor(Date.now() / 1000);
+
+  const positions: Position[] = [];
+  const raw = await Promise.all(
+    Array.from({ length: count }, (_, i) =>
+      ethCall(STAKING_ADDRESS, SEL_GET_POSITION + encAddr(user) + encUint(BigInt(i))),
+    ),
+  );
+  raw.forEach((data, i) => {
+    // Position struct: amount, reward, unlockAt(uint64), withdrawn(bool).
+    const amount = BigInt("0x" + (wordAt(data, 0) || "0"));
+    const reward = BigInt("0x" + (wordAt(data, 1) || "0"));
+    const unlockAt = Number(BigInt("0x" + (wordAt(data, 2) || "0")));
+    const withdrawn = BigInt("0x" + (wordAt(data, 3) || "0")) !== 0n;
+    positions.push({
+      id: i,
+      amount,
+      reward,
+      unlockAt,
+      withdrawn,
+      matured: now >= unlockAt,
+    });
+  });
+
   return {
-    staked: BigInt("0x" + (amountWord || "0")),
-    pending: toBig(pendingRes),
     totalStaked: toBig(totalRes),
-    unlockTime: toBig(unlockRes),
-    cooldown: toBig(cooldownRes),
-    rewardIsStake: toBig(rewardRes) !== 0n,
-    tokensSet: toBig(setRes) !== 0n,
+    availableRewards: toBig(availRes),
+    positions,
   };
 }
 
-/** Current $NURO allowance the staking contract may pull from `owner`. */
+export async function quoteReward(amount: bigint, term: Term): Promise<bigint> {
+  const data = SEL_QUOTE + encUint(amount) + encUint(BigInt(term));
+  return toBig(await ethCall(STAKING_ADDRESS, data));
+}
+
 export async function getStakeAllowance(owner: string): Promise<bigint> {
   return toBig(
     await ethCall(NURO_TOKEN, SEL_ALLOWANCE + encAddr(owner) + encAddr(STAKING_ADDRESS)),
@@ -124,7 +168,6 @@ export interface TxRequest {
   chainId: number;
 }
 
-/** Approve the staking contract to spend $NURO (unlimited, one-time). */
 export function buildApprove(): TxRequest {
   return {
     to: NURO_TOKEN,
@@ -133,26 +176,26 @@ export function buildApprove(): TxRequest {
   };
 }
 
-export function buildStake(amount: bigint): TxRequest {
+export function buildStake(amount: bigint, term: Term): TxRequest {
   return {
     to: STAKING_ADDRESS,
-    data: SEL_STAKE + encUint(amount),
+    data: SEL_STAKE + encUint(amount) + encUint(BigInt(term)),
     chainId: ROBINHOOD_CHAIN_ID,
   };
 }
 
-export function buildUnstake(amount: bigint): TxRequest {
+export function buildWithdraw(positionId: number): TxRequest {
   return {
     to: STAKING_ADDRESS,
-    data: SEL_UNSTAKE + encUint(amount),
+    data: SEL_WITHDRAW + encUint(BigInt(positionId)),
     chainId: ROBINHOOD_CHAIN_ID,
   };
 }
 
-export function buildClaim(): TxRequest {
-  return { to: STAKING_ADDRESS, data: SEL_CLAIM, chainId: ROBINHOOD_CHAIN_ID };
-}
-
-export function buildCompound(): TxRequest {
-  return { to: STAKING_ADDRESS, data: SEL_COMPOUND, chainId: ROBINHOOD_CHAIN_ID };
+export function buildEmergencyWithdraw(positionId: number): TxRequest {
+  return {
+    to: STAKING_ADDRESS,
+    data: SEL_EMERGENCY + encUint(BigInt(positionId)),
+    chainId: ROBINHOOD_CHAIN_ID,
+  };
 }

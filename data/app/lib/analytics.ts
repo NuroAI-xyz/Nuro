@@ -1,12 +1,11 @@
 /**
  * Client for the Nuro orchestrator's public analytics endpoint.
- * Overridable via VITE_ORCHESTRATOR_URL; defaults to the deployed Railway
- * orchestrator in production so the dashboard works without extra config.
+ * Overridable via VITE_ORCHESTRATOR_URL; defaults to the branded orchestrator
+ * domain in production so the dashboard works without extra config.
  */
 const env = import.meta.env;
 
-const PROD_ORCHESTRATOR_URL =
-  "https://noviqorchestrator-production.up.railway.app";
+const PROD_ORCHESTRATOR_URL = "https://api.nuroai.xyz";
 
 export const ORCHESTRATOR_URL =
   (env.VITE_ORCHESTRATOR_URL as string | undefined) ||

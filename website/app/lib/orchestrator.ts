@@ -1,19 +1,18 @@
 /**
- * Client for the Nuro orchestrator HTTP API (orchestrator.nuroai.xyz).
+ * Client for the Nuro orchestrator HTTP API (api.nuroai.xyz).
  *
  * Configure via env:
- *   VITE_ORCHESTRATOR_URL     e.g. https://orchestrator.nuroai.xyz  (HTTP API)
- *   VITE_ORCHESTRATOR_WS_URL  e.g. wss://orchestrator.nuroai.xyz/v1/worker
+ *   VITE_ORCHESTRATOR_URL     e.g. https://api.nuroai.xyz  (HTTP API)
+ *   VITE_ORCHESTRATOR_WS_URL  e.g. wss://api.nuroai.xyz/v1/worker
  * Falls back to localhost for dev.
  */
 const env = import.meta.env;
 
-// Deployed orchestrator (Railway). Overridable via VITE_ORCHESTRATOR_URL /
-// VITE_ORCHESTRATOR_WS_URL; used automatically in production builds so the
-// site works even if those env vars are not set on the host.
-const PROD_ORCHESTRATOR_URL = "https://noviqorchestrator-production.up.railway.app";
-const PROD_ORCHESTRATOR_WS_URL =
-  "wss://noviqorchestrator-production.up.railway.app/v1/worker";
+// Deployed orchestrator (branded domain fronting Railway). Overridable via
+// VITE_ORCHESTRATOR_URL / VITE_ORCHESTRATOR_WS_URL; used automatically in
+// production builds so the site works even if those env vars are not set.
+const PROD_ORCHESTRATOR_URL = "https://api.nuroai.xyz";
+const PROD_ORCHESTRATOR_WS_URL = "wss://api.nuroai.xyz/v1/worker";
 
 const isLocalUrl = (u?: string) =>
   !!u && /:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(u);

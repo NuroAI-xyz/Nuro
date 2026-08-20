@@ -38,7 +38,7 @@ npx @nuroaixyz/worker --token YOUR_TOKEN
 | Flag / env | Default | Description |
 |------------|---------|-------------|
 | `--token` / `NURO_TOKEN` | - | Worker token from nuroai.xyz (required) |
-| `--orchestrator` / `NURO_ORCHESTRATOR_URL` | `wss://orchestrator.nuroai.xyz/v1/worker` | Orchestrator WebSocket |
+| `--orchestrator` / `NURO_ORCHESTRATOR_URL` | `wss://api.nuroai.xyz/v1/worker` | Orchestrator WebSocket |
 | `--model` / `NURO_MODEL` | `qwen2.5:27b` | Ollama model ref |
 | `--model-id` / `NURO_MODEL_ID` | `nuro-max-27b` | Model id advertised to network |
 | `--ollama-host` / `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama API base URL |
@@ -56,7 +56,7 @@ Import from the browser subpath inside `nuroai.xyz`:
 import { createBrowserWorker } from "@nuroaixyz/worker/browser";
 
 const worker = await createBrowserWorker({
-  orchestratorUrl: "wss://orchestrator.nuroai.xyz/v1/worker",
+  orchestratorUrl: "wss://api.nuroai.xyz/v1/worker",
   token: session.workerToken,            // from the signed-in Privy session
   model: {
     id: "nuro-browser-8b",

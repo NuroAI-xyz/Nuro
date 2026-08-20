@@ -1,6 +1,6 @@
 import type { WorkerConfig } from "./types.js";
 
-const DEFAULT_ORCHESTRATOR = "wss://orchestrator.nuroai.xyz/v1/worker";
+const DEFAULT_ORCHESTRATOR = "wss://api.nuroai.xyz/v1/worker";
 const DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434";
 const DEFAULT_HEARTBEAT_MS = 30_000;
 

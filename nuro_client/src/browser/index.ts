@@ -205,7 +205,7 @@ export class BrowserWorker {
  *
  * ```ts
  * const worker = await createBrowserWorker({
- *   orchestratorUrl: "wss://orchestrator.nuroai.xyz/v1/worker",
+ *   orchestratorUrl: "wss://api.nuroai.xyz/v1/worker",
  *   token: session.workerToken,
  *   model: { id: "nuro-browser-8b", engine: "webllm", ref: "Qwen2.5-7B-Instruct-q4f16_1-MLC" },
  *   onProgress: (p) => setLoad(p.progress),

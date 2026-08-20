@@ -7,6 +7,7 @@ import { useBrowserWorker } from "../../lib/use-browser-worker";
 import { Link } from "react-router";
 import {
   isValidSolanaAddress,
+  ORCHESTRATOR_WS_URL,
   PUBLIC_API_URL,
   type IssuedApiKey,
   type UserStats,
@@ -776,7 +777,9 @@ function NativeWorkerCard({
     setErr(null);
     try {
       const token = await getToken("native");
-      setCommand(`npx @nuroaixyz/worker --token ${token}`);
+      setCommand(
+        `npx @nuroaixyz/worker --token ${token} --orchestrator ${ORCHESTRATOR_WS_URL}`,
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed to get command");
     } finally {

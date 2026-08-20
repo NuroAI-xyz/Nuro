@@ -7,7 +7,7 @@ import { useBrowserWorker } from "../../lib/use-browser-worker";
 import { Link } from "react-router";
 import {
   isValidSolanaAddress,
-  ORCHESTRATOR_URL,
+  PUBLIC_API_URL,
   type IssuedApiKey,
   type UserStats,
 } from "../../lib/orchestrator";
@@ -709,7 +709,7 @@ function BillingStrip({ billing }: { billing: UserStats["billing"] }) {
 
 function ApiUsageCard() {
   const [copied, setCopied] = useState(false);
-  const snippet = `curl ${ORCHESTRATOR_URL}/v1/chat/completions \\
+  const snippet = `curl ${PUBLIC_API_URL}/v1/chat/completions \\
   -H "Authorization: Bearer $NURO_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -742,7 +742,7 @@ function ApiUsageCard() {
         <code>{snippet}</code>
       </pre>
       <p className="mt-4 text-xs text-[#6f6f6f]">
-        Base URL <code className="text-[#c9c9c9]">{ORCHESTRATOR_URL}/v1</code> ·
+        Base URL <code className="text-[#c9c9c9]">{PUBLIC_API_URL}/v1</code> ·
         model optional (routed to an available worker).
       </p>
     </article>

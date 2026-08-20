@@ -15,13 +15,53 @@ const PROD_ORCHESTRATOR_URL = "https://noviqorchestrator-production.up.railway.a
 const PROD_ORCHESTRATOR_WS_URL =
   "wss://noviqorchestrator-production.up.railway.app/v1/worker";
 
-export const ORCHESTRATOR_URL =
-  (env.VITE_ORCHESTRATOR_URL as string | undefined) ||
-  (env.PROD ? PROD_ORCHESTRATOR_URL : "http://localhost:8787");
+const isLocalUrl = (u?: string) =>
+  !!u && /:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(u);
 
-export const ORCHESTRATOR_WS_URL =
-  (env.VITE_ORCHESTRATOR_WS_URL as string | undefined) ||
-  (env.PROD ? PROD_ORCHESTRATOR_WS_URL : "ws://localhost:8787/v1/worker");
+// True only when the page itself is being served from localhost. (false during
+// SSR, where `window` is undefined — that's fine, SSR should use the prod URL.)
+const onLocalhost =
+  typeof window !== "undefined" &&
+  /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+
+/**
+ * Resolve the orchestrator endpoint defensively. The footgun this guards
+ * against: a dev `localhost` value gets copied into the production host's env
+ * and baked into the build, so the live site tries to fetch `localhost:8787`
+ * from the visitor's machine and every worker/earn call dies with
+ * "Failed to fetch". If we're NOT on localhost, a localhost-configured URL is
+ * ignored in favour of the deployed orchestrator.
+ */
+function resolveEndpoint(
+  configured: string | undefined,
+  prod: string,
+  devDefault: string,
+): string {
+  if (configured && !(isLocalUrl(configured) && !onLocalhost)) return configured;
+  if (!onLocalhost) return prod; // deployed (or SSR) → live backend
+  return configured || devDefault; // genuine local dev
+}
+
+export const ORCHESTRATOR_URL = resolveEndpoint(
+  env.VITE_ORCHESTRATOR_URL as string | undefined,
+  PROD_ORCHESTRATOR_URL,
+  "http://localhost:8787",
+);
+
+export const ORCHESTRATOR_WS_URL = resolveEndpoint(
+  env.VITE_ORCHESTRATOR_WS_URL as string | undefined,
+  PROD_ORCHESTRATOR_WS_URL,
+  "ws://localhost:8787/v1/worker",
+);
+
+/**
+ * Brand-neutral, display-only API base shown in docs/quickstart snippets.
+ * Kept separate from ORCHESTRATOR_URL so the UI never surfaces the raw backend
+ * host. Point VITE_PUBLIC_API_URL at a branded domain (e.g. api.nuroai.xyz)
+ * once it resolves to the orchestrator; until then it's cosmetic.
+ */
+export const PUBLIC_API_URL =
+  (env.VITE_PUBLIC_API_URL as string | undefined) || "https://api.nuroai.xyz";
 
 export type WorkerClass = "native" | "browser";
 

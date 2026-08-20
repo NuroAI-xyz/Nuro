@@ -22,6 +22,11 @@ export const NURO_TOKEN = (
   "0x3bbe06f1fa1eee18dd4bc4092c79294a9a24e262"
 ).toLowerCase();
 
+/** Same address but with its original (checksummed) casing — for display/copy. */
+export const NURO_TOKEN_DISPLAY =
+  (import.meta.env.VITE_NURO_TOKEN as string) ||
+  "0x3BbE06f1Fa1eee18dd4Bc4092C79294a9A24E262";
+
 export const NURO_SYMBOL = "NURO";
 
 /** USDG (Global Dollar) ERC-20 on Robinhood Chain. */

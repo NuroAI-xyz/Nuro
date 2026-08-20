@@ -1,8 +1,52 @@
 import { useEffect, useState } from "react";
 import { LoginButton } from "../auth/login-button";
+import {
+  NURO_TOKEN,
+  NURO_TOKEN_DISPLAY,
+  explorerAddressUrl,
+  shortAddress,
+} from "../../lib/token";
 
 const DATA_URL = "https://data.nuroai.xyz";
 const DOCS_URL = "https://docs.nuroai.xyz";
+
+const NURO_EXPLORER_URL = explorerAddressUrl(NURO_TOKEN);
+
+/** Copyable $NURO contract-address chip (used in the footer). */
+function ContractAddress() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard?.writeText(NURO_TOKEN_DISPLAY).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    });
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-[#5c5c5c]">
+        $NURO CA
+      </span>
+      <button
+        type="button"
+        onClick={copy}
+        title="Copy contract address"
+        className="group inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-black/40 px-3 py-1.5 font-mono text-xs text-[#c9c9c9] transition-colors hover:border-white/25 hover:text-white"
+      >
+        <span className="hidden sm:inline">{NURO_TOKEN_DISPLAY}</span>
+        <span className="sm:hidden">{shortAddress(NURO_TOKEN_DISPLAY)}</span>
+        <span className="text-[#7ED6FF]">{copied ? "Copied" : "Copy"}</span>
+      </button>
+      <a
+        href={NURO_EXPLORER_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="text-xs text-[#8a8a8a] transition-colors hover:text-white"
+      >
+        Explorer ↗
+      </a>
+    </div>
+  );
+}
 
 function ChevronDownIcon({ className }: { className?: string }) {
   return (
@@ -47,14 +91,15 @@ const socialLinks = [
 const primaryLinks: { label: string; href: string; external?: boolean }[] = [
   { label: "Chat", href: "/assistant" },
   { label: "Earn", href: "/earn" },
+  { label: "Account", href: "/profile" },
   { label: "Data", href: DATA_URL, external: true },
   { label: "Docs", href: DOCS_URL, external: true },
 ];
 
 const nuroMenuItems: { label: string; href: string; external?: boolean }[] = [
-  { label: "Account", href: "/profile" },
   { label: "Staking", href: "/staking" },
   { label: "Treasury", href: "/treasury" },
+  { label: "Contract ↗", href: NURO_EXPLORER_URL, external: true },
 ];
 
 function MenuToggle({
@@ -260,6 +305,7 @@ export function SiteFooter() {
             Uncensored, private, decentralized inference - powered by GPUs people
             contribute, not rent.
           </p>
+          <ContractAddress />
         </div>
         <div className="flex flex-col gap-3 text-sm text-[#8a8a8a] md:items-end">
           <div className="flex items-center gap-4">

@@ -1,0 +1,50 @@
+# Render Blueprint for the Nuro orchestrator (worker WS control plane + HTTP API).
+#
+# Deploy: Render Dashboard → New → Blueprint → connect the NuroAI-xyz/Nuro repo.
+# Render reads this file, builds the Docker image from the monorepo root, and
+# prompts for the secret env vars marked `sync: false`.
+#
+# The image is built from orchestrator/Dockerfile with the build context at the
+# repo root (it needs the pnpm workspace + lockfile). The app binds to $PORT
+# (Render injects it) on 0.0.0.0, and WebSockets ride the same port, so no extra
+# config is needed for the /v1/worker socket.
+services:
+  - type: web
+    name: nuro-orchestrator
+    runtime: docker
+    plan: starter # free spins down on idle (kills WS + seed workers); starter stays warm
+    region: oregon
+    dockerfilePath: ./orchestrator/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Supabase Postgres — the "Connection pooling (Transaction)" string.
+      - key: DATABASE_URL
+        sync: false
+      # Privy server-side token verification (same app id as the website).
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+      # Browser origins allowed to call the HTTP API (curl / server-to-server
+      # send no Origin and are always allowed; localhost is always allowed).
+      - key: ALLOWED_ORIGINS
+        value: https://nuroai.xyz,https://www.nuroai.xyz,https://data.nuroai.xyz
+      # Bootstrap fleet: guards /v1/admin/seed-token. Render generates a random
+      # value; read it in the dashboard to provision seed-worker tokens.
+      - key: ADMIN_SECRET
+        generateValue: true
+      # Consumer billing (public inference API). Explicit here so behaviour
+      # doesn't silently flip with NODE_ENV.
+      - key: BILLING_ENABLED
+        value: "false"
+      - key: FREE_TIER_REQUESTS
+        value: "5"
+      - key: WORKER_REVENUE_SHARE
+        value: "0.8"
+      # Cosmetic floor added to displayed online-worker counts (0 = true counts).
+      - key: DISPLAY_WORKER_FLOOR
+        value: "0"

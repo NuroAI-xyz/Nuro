@@ -8,11 +8,12 @@
  */
 const env = import.meta.env;
 
-// Deployed orchestrator (branded domain fronting Railway). Overridable via
-// VITE_ORCHESTRATOR_URL / VITE_ORCHESTRATOR_WS_URL; used automatically in
-// production builds so the site works even if those env vars are not set.
-const PROD_ORCHESTRATOR_URL = "https://api.nuroai.xyz";
-const PROD_ORCHESTRATOR_WS_URL = "wss://api.nuroai.xyz/v1/worker";
+// Deployed orchestrator (Render). Overridable via VITE_ORCHESTRATOR_URL /
+// VITE_ORCHESTRATOR_WS_URL; used automatically in production builds so the site
+// works even if those env vars are not set. HTTP is fronted by the same-origin
+// `/api/orch` proxy, so the browser only ever sees this host for the WebSocket.
+const PROD_ORCHESTRATOR_URL = "https://nuro-ob4h.onrender.com";
+const PROD_ORCHESTRATOR_WS_URL = "wss://nuro-ob4h.onrender.com/v1/worker";
 
 const isLocalUrl = (u?: string) =>
   !!u && /:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(u);

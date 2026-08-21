@@ -5,7 +5,7 @@
  */
 const env = import.meta.env;
 
-const PROD_ORCHESTRATOR_URL = "https://api.nuroai.xyz";
+const PROD_ORCHESTRATOR_URL = "https://nuro-ob4h.onrender.com";
 
 export const ORCHESTRATOR_URL =
   (env.VITE_ORCHESTRATOR_URL as string | undefined) ||
